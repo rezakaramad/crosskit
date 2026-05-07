@@ -1,11 +1,11 @@
-# How Controller-Tools and Markers Work
+# How controller-tools and markers work
 
 This note explains the two ideas that matter most when reading the generator code:
 
 1. what a **marker** is
 2. why the tool must **know which markers exist** before it can use them
 
-## The Short Version
+## The short version
 
 `controller-tools` reads your Go types and turns them into Kubernetes API metadata such as schemas.
 
@@ -27,7 +27,7 @@ With markers, the tool can also learn that:
 - the value must be at least `1`
 - the default value is `3`
 
-## What a Marker Is
+## What a marker is
 
 A marker is a structured comment, usually starting with `+kubebuilder:`.
 
@@ -58,7 +58,7 @@ Markers can describe extra API rules like:
 - whether the type is a root Kubernetes object
 - whether status is a subresource
 
-## Why Controller-Tools Needs Markers
+## Why controller-tools needs markers
 
 When `controller-tools` generates a schema, it combines three things:
 
@@ -89,7 +89,7 @@ From this, the tool can infer:
 
 That becomes part of the generated OpenAPI schema.
 
-## Why the Tool Must Know Which Markers Exist
+## Why the tool must know which markers exist
 
 This is the key point.
 
@@ -119,7 +119,7 @@ Guessing would be unreliable.
 
 That is why `controller-tools` has to register marker definitions first.
 
-## The Simple Analogy
+## The simple analogy
 
 Think of it like this:
 
@@ -129,7 +129,7 @@ Think of it like this:
 
 If the reader sees a word that is not in the dictionary, it cannot know what that word means.
 
-## What These Two Lines Do
+## What these two lines do
 
 In the generator code you have:
 
@@ -174,7 +174,7 @@ This means:
 
 After that, the registry understands the kubebuilder markers needed for schema generation.
 
-## Simple Example
+## Simple example
 
 Imagine you have this Go type:
 
@@ -191,7 +191,7 @@ type AppSpec struct {
 
 Now think of the marker setup flow like this.
 
-### Step 1: Create an Empty Registry
+### Step 1: Create an empty registry
 
 ```go
 registry := &markers.Registry{}
@@ -207,7 +207,7 @@ If the parser sees:
 
 it still does not know what that marker means.
 
-### Step 2: Create the CRD Generator Helper
+### Step 2: Create the CRD generator helper
 
 ```go
 generator := crd.Generator{}
@@ -222,7 +222,7 @@ For example, it knows about marker families such as:
 - object/root markers
 - subresource markers
 
-### Step 3: Register Those Marker Definitions
+### Step 3: Register those marker definitions
 
 ```go
 err := generator.RegisterMarkers(registry)
@@ -240,7 +240,7 @@ After this, the registry can understand comments like:
 // +kubebuilder:validation:Enum=dev;staging;prod
 ```
 
-### Step 4: Let the Parser Use the Registry
+### Step 4: Let the parser use the registry
 
 Later, when the parser reads your type, it can turn those comments into schema rules like:
 
@@ -250,7 +250,7 @@ Later, when the parser reads your type, it can turn those comments into schema r
 
 That is why `RegisterMarkers` matters: it makes marker comments understandable before parsing begins.
 
-## The Basic Terms You Should Know
+## The basic terms you should know
 
 | Term | Meaning |
 |---|---|
@@ -264,7 +264,7 @@ That is why `RegisterMarkers` matters: it makes marker comments understandable b
 | CRD | Kubernetes CustomResourceDefinition |
 | OpenAPI schema | The validation schema embedded in a CRD or XRD |
 
-## How This Fits in Your Generator
+## How this fits in your generator
 
 The flow in the generator is:
 
@@ -277,6 +277,6 @@ The flow in the generator is:
 
 So the registry setup is not optional plumbing. It is what makes marker comments meaningful to the tool.
 
-## One Sentence Summary
+## One sentence summary
 
 Markers are structured comments that describe API behavior, and `controller-tools` must register their definitions first so it can parse them correctly and turn them into schema.

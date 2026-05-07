@@ -1,4 +1,4 @@
-# How the Go Module System Works
+# How the Go module system works
 
 This note explains the basic ideas behind Go modules, package paths, and why code like this exists:
 
@@ -8,7 +8,7 @@ config := &packages.Config{Dir: moduleDir}
 
 If Go's module system feels confusing at first, that is normal. The main difficulty is that Go works with both **import paths** and **real directories on disk**, and the code has to connect those two worlds.
 
-## The Short Version
+## The short version
 
 When the generator gets a package path like:
 
@@ -29,7 +29,7 @@ Before Go can load and inspect that package, it has to figure out:
 
 That is why the generator first resolves the package directory, then tells the Go loader to use that directory as its working context.
 
-## Three Different Things
+## Three different things
 
 These three are easy to mix up:
 
@@ -41,7 +41,7 @@ These three are easy to mix up:
 
 A package path usually starts with the module path, then adds subdirectories under it.
 
-## How the Filesystem Path Is Built
+## How the filesystem path is built
 
 Suppose:
 
@@ -72,7 +72,7 @@ So yes, the basic idea is:
 - strip the module path prefix from the package path
 - append the rest to the module root
 
-## What `go.mod` Does
+## What `go.mod` does
 
 A Go module is usually a directory tree with a `go.mod` file at its root.
 
@@ -104,7 +104,7 @@ then the package path becomes:
 github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple
 ```
 
-## How Go Finds Dependencies
+## How Go finds dependencies
 
 When your code imports another package, Go looks at the active module and its `go.mod` file.
 
@@ -126,7 +126,7 @@ That means:
 
 This is why the correct module context matters. The same import path can resolve differently depending on the active `go.mod`.
 
-## Why `findModuleDir` Exists
+## Why `findModuleDir` exists
 
 The generator starts with a package path like:
 
@@ -151,7 +151,7 @@ It does that by checking a few places:
 3. `replace` rules in `go.mod`
 4. required modules in the Go module cache
 
-## What This Line Means
+## What this line means
 
 ```go
 config := &packages.Config{Dir: moduleDir}
@@ -179,7 +179,7 @@ Without this, the loader may:
 - ignore a local replacement
 - load dependencies incorrectly
 
-## A Simple Analogy
+## A simple analogy
 
 Think of a package path like a mailing address written in a company directory, not on a city map.
 
@@ -199,7 +199,7 @@ That is what this does:
 config := &packages.Config{Dir: moduleDir}
 ```
 
-## How It Fits in the Generator
+## How it fits in the generator
 
 The overall flow is:
 
@@ -210,7 +210,7 @@ The overall flow is:
 5. `controller-tools` reads the struct fields and kubebuilder markers
 6. the generator turns that into an OpenAPI schema
 
-## Why This Matters for the XRD Generator
+## Why this matters for the XRD generator
 
 Without this machinery, users would have to manually write OpenAPI schema YAML by hand.
 
@@ -222,6 +222,6 @@ This module lets you:
 
 That keeps the Go type and the schema in sync and reduces manual mistakes.
 
-## One Sentence Summary
+## One sentence summary
 
 The Go module system maps import paths to real code on disk, and this generator uses that mapping so it can find your Go types, load them correctly, and turn them into XRD schema.
