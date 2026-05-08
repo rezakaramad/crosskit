@@ -33,6 +33,7 @@ func main() {
 	group := flag.String("group", "", "Crossplane API group (required), e.g. idp.rezakara.demo")
 	version := flag.String("version", "v1alpha1", "API version (default: v1alpha1)")
 	plural := flag.String("plural", "", "Plural resource name; defaults to lowercase kind + 's'")
+	scope  := flag.String("scope", "Namespaced", "XRD scope: Namespaced or Cluster")
 	output := flag.String("output", "", "Write YAML to this file (default: stdout)")
 	flag.Parse()
 
@@ -49,6 +50,7 @@ func main() {
 		Group:       *group,
 		Version:     *version,
 		Plural:      *plural,
+		Scope:       *scope,
 	})
 	if err != nil {
 		log.Fatalf("generate XRD: %v", err)

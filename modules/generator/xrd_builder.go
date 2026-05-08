@@ -21,6 +21,7 @@ type ResourceMeta struct {
 	Group       string // API group for the XRD
 	Version     string // API version for the XRD (optional, defaults to "v1alpha1")
 	Plural      string // Plural name for the XRD
+	Scope       string // XRD scope: "Namespaced" or "Cluster" (optional, defaults to "Namespaced")
 }
 
 // It does the following things:
@@ -42,6 +43,11 @@ func BuildCompositeResourceDefinition(resource ResourceMeta) (*apiextensionsv2.C
 	version := resource.Version
 	if version == "" {
 		version = "v1alpha1"
+	}
+
+	scope := apiextensionsv2.CompositeResourceScope(resource.Scope)
+	if scope == "" {
+		scope = apiextensionsv2.CompositeResourceScopeNamespaced
 	}
 
 	// Retrieve the OpenAPI schema for the specified Go type using the schema extractor.
@@ -92,7 +98,7 @@ func BuildCompositeResourceDefinition(resource ResourceMeta) (*apiextensionsv2.C
 		},
 		Spec: apiextensionsv2.CompositeResourceDefinitionSpec{
 			Group: resource.Group,
-			Scope: apiextensionsv2.CompositeResourceScopeNamespaced,
+			Scope: scope,
 			Names: apiextv1.CustomResourceDefinitionNames{
 				Kind:   kind,
 				Plural: plural,
