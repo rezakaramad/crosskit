@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 	"sigs.k8s.io/yaml"
+
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 func buildBaselineApplications(
@@ -14,7 +15,6 @@ func buildBaselineApplications(
 	destinationClusters []xtenant.Cluster,
 	repo, branch, basePath string,
 ) ([]*composed.Unstructured, error) {
-
 	if len(destinationClusters) == 0 {
 		return nil, nil
 	}
@@ -37,15 +37,15 @@ func buildBaselineApplications(
 		app.SetNamespace("argocd")
 		_ = app.SetValue("metadata.namespace", "argocd")
 		app.SetLabels(map[string]string{
-			"app.kubernetes.io/managed-by":  "crossplane",
+			"app.kubernetes.io/managed-by":  managedByCrossplane,
 			"platform.rezakara.demo/tenant": t.GetName(),
 			"platform.rezakara.demo/prefix": c.Prefix,
 		})
 
 		values := map[string]any{
 			"tenant": map[string]any{
-				"name":    t.GetName(),
-				"dnsName": t.Spec.DNSName,
+				metadataNameKey: t.GetName(),
+				"dnsName":       t.Spec.DNSName,
 				"owner": map[string]any{
 					"team":  t.Spec.Owner.Team,
 					"email": t.Spec.Owner.Email,
@@ -70,8 +70,8 @@ func buildBaselineApplications(
 				},
 			},
 			"destination": map[string]any{
-				"name":      c.Name,
-				"namespace": t.GetName(),
+				metadataNameKey: c.Name,
+				"namespace":     t.GetName(),
 			},
 		}
 

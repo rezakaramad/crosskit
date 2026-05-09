@@ -3,16 +3,16 @@ package main
 import (
 	"fmt"
 
-	"github.com/crossplane/function-sdk-go/resource"
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/crossplane/function-sdk-go/resource"
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 const defaultUserPrincipalDomain = "rkaramadgmail.onmicrosoft.com"
 const principalTypeUser = "user"
-const principalTypeGroup = "group"
 
 // ResolvedBinding holds a fully resolved role-cluster binding including the
 // Entra principal object ID that was provisioned for it.
@@ -42,10 +42,10 @@ func userPasswordSecretResourceName(binding inputv1beta1.BindingInput) resource.
 	return resource.Name(fmt.Sprintf("entra-user-password-secret-%s", binding.Name))
 }
 
-func userResourceNames(t TenantSpec, binding inputv1beta1.BindingInput) (resourceName resource.Name, secretName, principalName string) {
+func userResourceNames(t TenantSpec, binding inputv1beta1.BindingInput) (secretName, principalName string) {
 	principalName = fmt.Sprintf("%s-%s", t.GetName(), binding.Name)
 	secretName = fmt.Sprintf("%s-initial-password", principalName)
-	return principalResourceName(inputv1beta1.AzureInput{PrincipalType: principalTypeUser}, binding), secretName, principalName
+	return secretName, principalName
 }
 
 func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *composed.Unstructured {
@@ -53,9 +53,9 @@ func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *compo
 	group.SetAPIVersion("groups.azuread.m.upbound.io/v1beta1")
 	group.SetKind("Group")
 	group.SetName(fmt.Sprintf("%s-%s-%s", t.GetName(), binding.Name, binding.EnvironmentPrefix))
-	group.SetNamespace("crossplane")
+	group.SetNamespace(defaultCrossplaneNamespace)
 	group.SetLabels(map[string]string{
-		"app.kubernetes.io/managed-by":  "crossplane",
+		"app.kubernetes.io/managed-by":  managedByCrossplane,
 		"platform.rezakara.demo/tenant": t.GetName(),
 		"platform.rezakara.demo/role":   binding.Name,
 		"platform.rezakara.demo/prefix": binding.EnvironmentPrefix,
@@ -76,7 +76,7 @@ func buildPrincipalUserPassword(binding inputv1beta1.BindingInput, secretName st
 	password.SetAPIVersion("generators.external-secrets.io/v1alpha1")
 	password.SetKind("Password")
 	password.SetName(secretName)
-	password.SetNamespace("crossplane")
+	password.SetNamespace(defaultCrossplaneNamespace)
 	_ = password.SetValue("spec.length", int64(32))
 	return password
 }
@@ -86,14 +86,14 @@ func buildPrincipalUserPasswordSecret(binding inputv1beta1.BindingInput, secretN
 	externalSecret.SetAPIVersion("external-secrets.io/v1")
 	externalSecret.SetKind("ExternalSecret")
 	externalSecret.SetName(secretName)
-	externalSecret.SetNamespace("crossplane")
+	externalSecret.SetNamespace(defaultCrossplaneNamespace)
 	_ = externalSecret.SetValue("spec.target.name", secretName)
 	_ = externalSecret.SetValue("spec.dataFrom", []any{
 		map[string]any{
 			"sourceRef": map[string]any{
 				"generatorRef": map[string]any{
-					"kind": "Password",
-					"name": secretName,
+					"kind":          "Password",
+					metadataNameKey: secretName,
 				},
 			},
 		},
@@ -102,7 +102,7 @@ func buildPrincipalUserPasswordSecret(binding inputv1beta1.BindingInput, secretN
 }
 
 func buildPrincipalUser(t TenantSpec, binding inputv1beta1.BindingInput, azure inputv1beta1.AzureInput) *composed.Unstructured {
-	_, secretName, principalName := userResourceNames(t, binding)
+	secretName, principalName := userResourceNames(t, binding)
 	domain := azure.UserPrincipalDomain
 	if domain == "" {
 		domain = defaultUserPrincipalDomain
@@ -112,9 +112,9 @@ func buildPrincipalUser(t TenantSpec, binding inputv1beta1.BindingInput, azure i
 	user.SetAPIVersion("users.azuread.m.upbound.io/v1beta1")
 	user.SetKind("User")
 	user.SetName(principalName)
-	user.SetNamespace("crossplane")
+	user.SetNamespace(defaultCrossplaneNamespace)
 	user.SetLabels(map[string]string{
-		"app.kubernetes.io/managed-by":          "crossplane",
+		"app.kubernetes.io/managed-by":          managedByCrossplane,
 		"platform.rezakara.demo/tenant":         t.GetName(),
 		"platform.rezakara.demo/role":           binding.Name,
 		"platform.rezakara.demo/principal-type": principalTypeUser,
@@ -138,7 +138,7 @@ func buildPrincipalResources(t TenantSpec, binding inputv1beta1.BindingInput, az
 		}
 	}
 
-	_, secretName, _ := userResourceNames(t, binding)
+	secretName, _ := userResourceNames(t, binding)
 	return map[resource.Name]*resource.DesiredComposed{
 		userPasswordResourceName(binding):       {Resource: buildPrincipalUserPassword(binding, secretName)},
 		userPasswordSecretResourceName(binding): {Resource: buildPrincipalUserPasswordSecret(binding, secretName)},

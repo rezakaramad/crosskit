@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 func policiesForRole(role string) ([]map[string]any, error) {
@@ -57,8 +58,8 @@ func renderedRoles(bindings []ResolvedBinding) ([]map[string]any, error) {
 			return nil, err
 		}
 		out = append(out, map[string]any{
-			"name":     role,
-			"policies": policies,
+			metadataNameKey: role,
+			"policies":      policies,
 		})
 	}
 	return out, nil
@@ -70,7 +71,6 @@ func buildGitopsApplication(
 	azure inputv1beta1.AzureInput,
 	repo, branch, basePath string,
 ) (*composed.Unstructured, error) {
-
 	name := fmt.Sprintf("gitops-%s", t.GetName())
 
 	app := composed.New()
@@ -107,8 +107,8 @@ func buildGitopsApplication(
 			"principalType": azure.PrincipalType,
 		},
 		"tenant": map[string]any{
-			"name":    t.GetName(),
-			"dnsName": t.Spec.DNSName,
+			metadataNameKey: t.GetName(),
+			"dnsName":       t.Spec.DNSName,
 			"owner": map[string]any{
 				"team":  t.Spec.Owner.Team,
 				"email": t.Spec.Owner.Email,
@@ -137,8 +137,8 @@ func buildGitopsApplication(
 			},
 		},
 		"destination": map[string]any{
-			"name":      "in-cluster",
-			"namespace": fmt.Sprintf("gitops-%s", t.GetName()),
+			metadataNameKey: "in-cluster",
+			"namespace":     fmt.Sprintf("gitops-%s", t.GetName()),
 		},
 	}
 

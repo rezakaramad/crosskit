@@ -231,7 +231,7 @@ func TestRunFunction(t *testing.T) {
 				exportRepository:     "kubepave-tenants",
 				exportRepoBranch:     "main",
 				exportRepoBasePath:   "tenants",
-				crossplaneNamespace:  "crossplane",
+				crossplaneNamespace:  defaultCrossplaneNamespace,
 				baselineRepoURL:      "https://github.com/rezakaramad/kubepave.git",
 				baselineRepoBranch:   "main",
 				baselineRepoBasePath: "charts/baseline-tenant",

@@ -5,17 +5,16 @@ import (
 	"fmt"
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
+	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
+	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
-
-	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
-	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func uniqueClustersFromBindings(bindings []inputv1beta1.BindingInput) []xtenant.Cluster {
@@ -37,6 +36,7 @@ func uniqueClustersFromBindings(bindings []inputv1beta1.BindingInput) []xtenant.
 // Function is the gRPC server that Crossplane calls to render tenant resources.
 type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
+
 	log logging.Logger
 
 	// Git export (final bundle destination)
@@ -62,7 +62,6 @@ func (f *Function) RunFunction(
 	_ context.Context,
 	req *fnv1.RunFunctionRequest,
 ) (*fnv1.RunFunctionResponse, error) {
-
 	log := f.log.WithValues("tag", req.GetMeta().GetTag())
 	log.Info("Running function-xtenant-render")
 

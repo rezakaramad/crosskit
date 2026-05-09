@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/google/uuid"
 	"sigs.k8s.io/yaml"
+
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 // bundleYAML serializes one or more rendered Kubernetes resources into a

@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 // RepositoryFileConfig provides all external settings required to build a RepositoryFile resource.
@@ -40,7 +41,7 @@ func buildRepositoryFile(t TenantSpec, content string, cfg RepositoryFileConfig)
 
 	ns := cfg.Namespace
 	if ns == "" {
-		ns = "crossplane"
+		ns = defaultCrossplaneNamespace
 	}
 	u.SetNamespace(ns)
 	u.SetLabels(commonLabels(t))
@@ -57,8 +58,8 @@ func buildRepositoryFile(t TenantSpec, content string, cfg RepositoryFileConfig)
 			"overwriteOnCreate": true,
 		},
 		"providerConfigRef": map[string]any{
-			"name": cfg.ProviderConfigName,
-			"kind": "ClusterProviderConfig",
+			metadataNameKey: cfg.ProviderConfigName,
+			"kind":          "ClusterProviderConfig",
 		},
 	}
 
