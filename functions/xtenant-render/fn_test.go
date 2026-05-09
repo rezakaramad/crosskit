@@ -242,9 +242,9 @@ func TestRunFunction(t *testing.T) {
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 
 			// For fatal cases only check severity; message contains internal details we don't want to pin.
-			if tc.want.rsp != nil && len(tc.want.rsp.Results) > 0 && tc.want.rsp.Results[0].Severity == fnv1.Severity_SEVERITY_FATAL {
-				if len(rsp.Results) == 0 || rsp.Results[0].Severity != fnv1.Severity_SEVERITY_FATAL {
-					t.Errorf("%s: expected a fatal result, got: %v", tc.reason, rsp.Results)
+			if tc.want.rsp != nil && len(tc.want.rsp.GetResults()) > 0 && tc.want.rsp.GetResults()[0].GetSeverity() == fnv1.Severity_SEVERITY_FATAL {
+				if len(rsp.GetResults()) == 0 || rsp.GetResults()[0].GetSeverity() != fnv1.Severity_SEVERITY_FATAL {
+					t.Errorf("%s: expected a fatal result, got: %v", tc.reason, rsp.GetResults())
 				}
 				return
 			}
@@ -253,13 +253,13 @@ func TestRunFunction(t *testing.T) {
 				t.Errorf("%s\nf.RunFunction(...): -want err, +got err:\n%s", tc.reason, diff)
 			}
 
-			if tc.want.rsp != nil && len(tc.want.rsp.Conditions) > 0 {
-				if len(rsp.Conditions) == 0 {
+			if tc.want.rsp != nil && len(tc.want.rsp.GetConditions()) > 0 {
+				if len(rsp.GetConditions()) == 0 {
 					t.Errorf("%s: expected conditions but got none", tc.reason)
 					return
 				}
-				wantCondition := tc.want.rsp.Conditions[0]
-				gotCondition := rsp.Conditions[0]
+				wantCondition := tc.want.rsp.GetConditions()[0]
+				gotCondition := rsp.GetConditions()[0]
 				if gotCondition.GetType() != wantCondition.GetType() ||
 					gotCondition.GetStatus() != wantCondition.GetStatus() ||
 					gotCondition.GetReason() != wantCondition.GetReason() {

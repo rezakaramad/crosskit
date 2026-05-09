@@ -11,8 +11,10 @@ import (
 	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
-const defaultUserPrincipalDomain = "rkaramadgmail.onmicrosoft.com"
-const principalTypeUser = "user"
+const (
+	defaultUserPrincipalDomain = "rkaramadgmail.onmicrosoft.com"
+	principalTypeUser          = "user"
+)
 
 // ResolvedBinding holds a fully resolved role-cluster binding including the
 // Entra principal object ID that was provisioned for it.
@@ -71,7 +73,7 @@ func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *compo
 	return group
 }
 
-func buildPrincipalUserPassword(binding inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
+func buildPrincipalUserPassword(_ inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
 	password := composed.New()
 	password.SetAPIVersion("generators.external-secrets.io/v1alpha1")
 	password.SetKind("Password")
@@ -81,7 +83,7 @@ func buildPrincipalUserPassword(binding inputv1beta1.BindingInput, secretName st
 	return password
 }
 
-func buildPrincipalUserPasswordSecret(binding inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
+func buildPrincipalUserPasswordSecret(_ inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
 	externalSecret := composed.New()
 	externalSecret.SetAPIVersion("external-secrets.io/v1")
 	externalSecret.SetKind("ExternalSecret")

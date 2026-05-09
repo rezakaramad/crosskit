@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
@@ -146,9 +147,7 @@ func (f *Function) RunFunction(
 	waitingForPrincipal := false
 
 	for _, binding := range bindings {
-		for resourceName, desiredResource := range buildPrincipalResources(tenant, binding, input.Azure) {
-			desired[resourceName] = desiredResource
-		}
+		maps.Copy(desired, buildPrincipalResources(tenant, binding, input.Azure))
 
 		objectID, ready, err := resolveBindingPrincipalObjectID(observed, input.Azure, binding)
 		if err != nil {
@@ -204,7 +203,8 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// 8. Bundle to YAML and write RepositoryFile
 	// ---------------------------------------------------------------------
-	resources := []*composed.Unstructured{gitopsApp}
+	resources := make([]*composed.Unstructured, 0, 1+len(baselineApps))
+	resources = append(resources, gitopsApp)
 	resources = append(resources, baselineApps...)
 
 	content, err := bundleYAML(resources...)

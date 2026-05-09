@@ -15,7 +15,7 @@ const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccou
 
 // CLI of this Function.
 type CLI struct {
-	Debug              bool   `help:"Emit debug logs in addition to info logs." short:"d"`
+	Debug              bool   `help:"Emit debug logs in addition to info logs."                                                     short:"d"`
 	Network            string `default:"tcp"                                                                                        help:"Network on which to listen for gRPC connections."`
 	Address            string `default:":9443"                                                                                      help:"Address at which to listen for gRPC connections."`
 	TLSCertsDir        string `env:"TLS_SERVER_CERTS_DIR"                                                                           help:"Directory containing server certs (tls.key, tls.crt) and the CA used to verify client certificates (ca.crt)"`
