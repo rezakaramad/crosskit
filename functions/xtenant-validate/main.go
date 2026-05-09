@@ -3,25 +3,24 @@
 package main
 
 import (
-	"os"
-
 	"github.com/alecthomas/kong"
-	"github.com/crossplane/function-sdk-go"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/crossplane/function-sdk-go"
 )
 
 // CLI of this Function.
 type CLI struct {
-	Debug              bool   `help:"Emit debug logs in addition to info logs." short:"d"`
-	Network            string `default:"tcp"   help:"Network on which to listen for gRPC connections."`
-	Address            string `default:":9443" help:"Address at which to listen for gRPC connections."`
-	TLSCertsDir        string `env:"TLS_SERVER_CERTS_DIR" help:"Directory containing server certs (tls.key, tls.crt) and the CA used to verify client certificates (ca.crt)"`
+	Debug              bool   `help:"Emit debug logs in addition to info logs."                                                     short:"d"`
+	Network            string `default:"tcp"                                                                                        help:"Network on which to listen for gRPC connections."`
+	Address            string `default:":9443"                                                                                      help:"Address at which to listen for gRPC connections."`
+	TLSCertsDir        string `env:"TLS_SERVER_CERTS_DIR"                                                                           help:"Directory containing server certs (tls.key, tls.crt) and the CA used to verify client certificates (ca.crt)"`
 	Insecure           bool   `help:"Run without mTLS credentials. If you supply this flag --tls-server-certs-dir will be ignored."`
-	MaxRecvMessageSize int    `default:"4" help:"Maximum size of received messages in MB."`
+	MaxRecvMessageSize int    `default:"4"                                                                                          help:"Maximum size of received messages in MB."`
 }
 
 // Run this Function.
@@ -57,13 +56,6 @@ func (c *CLI) Run() error {
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }
 
 func main() {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -75,7 +76,7 @@ func (c *gcpDNSClient) CheckDNSAvailable(ctx context.Context, fqdn string) (DNSA
 	})
 
 	// If the error is errFound, it means we found a record with the same name → the DNS name is taken.
-	if err == errFound {
+	if errors.Is(err, errFound) {
 		return DNSAvailabilityResult{
 			Available: false,
 			Reason:    fmt.Sprintf("dns %q already exists", fqdn),

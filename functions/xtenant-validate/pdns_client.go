@@ -1,7 +1,5 @@
 package main
 
-// This file implements a DNSClient that checks the availability of tenant FQDNs by querying the PowerDNS API.
-
 import (
 	"context"
 	"encoding/json"
@@ -25,13 +23,7 @@ type pdnsClient struct {
 	client  *http.Client
 }
 
-// Instantiate a new PowerDNS client.
-// Inputs:
-// - baseURL: the base URL of the PowerDNS API (e.g. "https://pdns.example.com/api/v1").
-// - apiKey: the API key for authentication.
-// - httpClient: an optional http.Client. If nil, a default client with a 3-second timeout will be used.
-// Output:
-// - DNSClient that can be used to check DNS availability.
+// NewPowerDNSClient returns a DNSClient backed by the PowerDNS API.
 func NewPowerDNSClient(baseURL, apiKey string, httpClient *http.Client) DNSClient {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 3 * time.Second}
@@ -65,14 +57,16 @@ func (c *pdnsClient) CheckDNSAvailable(ctx context.Context, fqdn string) (DNSAva
 	if err != nil {
 		return DNSAvailabilityResult{}, fmt.Errorf("build request: %w", err)
 	}
-	req.Header.Set("X-API-Key", c.apiKey)
+	req.Header.Set("X-Api-Key", c.apiKey)
 
 	// Send the request to the PowerDNS API.
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return DNSAvailabilityResult{}, fmt.Errorf("pdns request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Zone not found → the DNS name is available.
 	if resp.StatusCode == http.StatusNotFound {

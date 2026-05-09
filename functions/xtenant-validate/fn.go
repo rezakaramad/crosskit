@@ -7,25 +7,26 @@ import (
 	"strings"
 	"time"
 
+	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
+	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
+
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
-
-	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
-	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Function is the gRPC server that Crossplane calls to run validation.
 type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
+
 	log  logging.Logger
 	kube ctrlclient.Client
 	dns  DNSClient
@@ -35,7 +36,6 @@ func (f *Function) RunFunction(
 	ctx context.Context,
 	req *fnv1.RunFunctionRequest,
 ) (*fnv1.RunFunctionResponse, error) {
-
 	start := time.Now()
 
 	log := f.log.WithValues("tag", req.GetMeta().GetTag())
@@ -56,7 +56,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	tenantRequest, err := fromObservedXR(xr)
 	if err != nil {
-		return fail(rsp, xr, PhaseFailed, err, "cannot parse XR")
+		return fail(rsp, xr, err, "cannot parse XR")
 	}
 
 	log = log.WithValues("tenant", tenantRequest.GetName())
@@ -66,19 +66,19 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	var input inputv1beta1.Input
 	if err := request.GetInput(req, &input); err != nil {
-		return fail(rsp, xr, PhaseFailed, err, "cannot parse function input")
+		return fail(rsp, xr, err, "cannot parse function input")
 	}
 	if input.DNS.BaseDomain == "" {
-		return fail(rsp, xr, PhaseFailed, xperrors.New("dns.baseDomain is required"), "cannot parse function input")
+		return fail(rsp, xr, xperrors.New("dns.baseDomain is required"), "cannot parse function input")
 	}
 	if len(input.Clusters) == 0 {
-		return fail(rsp, xr, PhaseFailed, xperrors.New("clusters is required"), "cannot parse function input")
+		return fail(rsp, xr, xperrors.New("clusters is required"), "cannot parse function input")
 	}
 
 	workloadClusters := make([]xtenant.Cluster, 0, len(input.Clusters))
 	for _, cluster := range input.Clusters {
 		if cluster.Name == "" || cluster.Prefix == "" {
-			return fail(rsp, xr, PhaseFailed, xperrors.New("clusters entries require name and prefix"), "cannot parse function input")
+			return fail(rsp, xr, xperrors.New("clusters entries require name and prefix"), "cannot parse function input")
 		}
 		workloadClusters = append(workloadClusters, xtenant.Cluster{
 			Name:   cluster.Name,
@@ -93,7 +93,7 @@ func (f *Function) RunFunction(
 	if dnsClient == nil {
 		dnsClient, err = buildDNSClient(ctx, input.DNS, f.kube)
 		if err != nil {
-			return fail(rsp, xr, PhaseFailed, err, "cannot build dns client")
+			return fail(rsp, xr, err, "cannot build dns client")
 		}
 	}
 
@@ -108,7 +108,6 @@ func (f *Function) RunFunction(
 		BaseDomain:       input.DNS.BaseDomain,
 		WorkloadClusters: workloadClusters,
 	}); verr != nil {
-
 		if verr.Retryable {
 			SetPhase(xr, PhaseValidating)
 		} else {
@@ -193,8 +192,8 @@ func fatal(rsp *fnv1.RunFunctionResponse, err error, msg string) (*fnv1.RunFunct
 	return rsp, nil
 }
 
-func fail(rsp *fnv1.RunFunctionResponse, xr *resource.Composite, phase string, err error, msg string) (*fnv1.RunFunctionResponse, error) {
-	SetPhase(xr, phase)
+func fail(rsp *fnv1.RunFunctionResponse, xr *resource.Composite, err error, msg string) (*fnv1.RunFunctionResponse, error) {
+	SetPhase(xr, PhaseFailed)
 	response.Fatal(rsp, xperrors.Wrap(err, msg))
 	return done(rsp, xr)
 }
