@@ -5,44 +5,28 @@ This function renders the desired tenant resources after approval. It builds Ent
 ## Flow Diagram
 
 ```mermaid
-flowchart TD
-    main[main.go\nCLI.Run] --> env[read env / discoverNamespace]
-    main --> serve[function.Serve]
-    serve --> run[fn.go\nFunction.RunFunction]
+flowchart LR
+    A[main.go\nCLI.Run] --> B[Load runtime config]
+    A --> C[function.Serve]
+    C --> D[fn.go\nRunFunction]
 
-    run --> observedXR[request.GetObservedCompositeResource]
-    run --> desiredMap[request.GetDesiredComposedResources]
-    run --> observedMap[request.GetObservedComposedResources]
-    run --> parseXR[XTenant decode via runtime.DefaultUnstructuredConverter]
-    run --> input[input/v1beta1/input.go\nrequest.GetInput]
-    run --> clusters[uniqueClustersFromBindings]
+    D --> E[Load XR, desired,\nobserved, and input]
+    E --> F[Approval gate]
+    F --> G[Skip render if not approved]
 
-    run --> approval[XTenant.Spec.Approved check]
-    approval --> skip[return without rendering]
+    D --> H[fn-identity.go\nBuild principal resources]
+    H --> I[Resolve principal object IDs]
+    I --> J[Wait until IDs exist]
 
-    run --> identity[fn-identity.go\nbuildPrincipalResources]
-    identity --> group[buildPrincipalGroup]
-    identity --> user[buildPrincipalUser]
-    user --> userPwd[buildPrincipalUserPassword]
-    user --> userSecret[buildPrincipalUserPasswordSecret]
+    D --> K[fn-baseline.go\nBuild baseline apps]
+    D --> L[fn-gitops.go\nBuild gitops app]
+    L --> L1[renderedRoles]
+    L --> L2[generateAppRoleUUID]
 
-    run --> resolveOID[fn-identity.go\nresolveBindingPrincipalObjectID]
-    resolveOID --> waiting[Rendered=False\nWaitingForPrincipalObjectID]
-
-    run --> baseline[fn-baseline.go\nbuildBaselineApplications]
-    baseline --> labels[fn-types.go\ncommonLabels]
-
-    run --> gitops[fn-gitops.go\nbuildGitopsApplication]
-    gitops --> roles[renderedRoles / policiesForRole]
-    gitops --> appRole[fn-utils.go\ngenerateAppRoleUUID]
-    gitops --> labels
-
-    run --> bundle[fn-utils.go\nbundleYAML]
-    run --> repoFile[fn-repository-file.go\nbuildRepositoryFile]
-    repoFile --> labels
-
-    run --> desiredOut[response.SetDesiredComposedResources]
-    desiredOut --> rendered[Rendered=True]
+    K --> M[fn-utils.go\nbundleYAML]
+    L --> M
+    M --> N[fn-repository-file.go\nBuild RepositoryFile]
+    N --> O[response.SetDesiredComposedResources]
 ```
 
 ## File Roles

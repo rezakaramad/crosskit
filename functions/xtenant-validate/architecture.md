@@ -5,39 +5,27 @@ This function validates an observed `XTenant`, checks DNS availability through t
 ## Flow Diagram
 
 ```mermaid
-flowchart TD
-    main[main.go\nCLI.Run] --> serve[function.Serve]
-    main --> kube[controller-runtime kube client]
-    serve --> run[fn.go\nFunction.RunFunction]
+flowchart LR
+    A[main.go\nCLI.Run] --> B[function.Serve]
+    A --> K[Kubernetes client]
+    B --> C[fn.go\nRunFunction]
 
-    run --> observed[request.GetObservedCompositeResource]
-    run --> parseXR[fromObservedXR]
-    run --> input[input/v1beta1/input.go\nrequest.GetInput]
-    run --> buildDNS[buildDNSClient]
-    run --> setValidating[status.go\nSetPhase(Validating)]
-    run --> validate[validate.go\nValidate]
+    C --> D[Load observed XR\nand function input]
+    D --> E[buildDNSClient]
+    E --> E1[PowerDNS client]
+    E --> E2[Cloud DNS client]
+    E --> E3[readSecretKey\nfor PowerDNS]
 
-    buildDNS --> secret[readSecretKey]
-    secret --> kube
-    buildDNS --> pdnsCtor[pdns_client.go\nNewPowerDNSClient]
-    buildDNS --> gcpCtor[gcp_dns_client.go\nNewGCPDNSClient]
+    C --> F[validate.go\nValidate]
+    F --> G[BuildFQDN]
+    F --> H[dns.go\nDNSClient.CheckDNSAvailable]
+    H --> E1
+    H --> E2
 
-    validate --> fqdn[pdns_client.go\nBuildFQDN]
-    validate --> dnsIface[dns.go\nDNSClient.CheckDNSAvailable]
-
-    dnsIface --> pdnsCheck[pdns_client.go\n(*pdnsClient).CheckDNSAvailable]
-    dnsIface --> gcpCheck[gcp_dns_client.go\n(*gcpDNSClient).CheckDNSAvailable]
-
-    pdnsCheck --> extractZone[pdns_client.go\nextractZone]
-    pdnsCheck --> trailing1[pdns_client.go\nensureTrailingDot]
-
-    gcpCheck --> findZone[gcp_dns_client.go\nfindZone]
-    gcpCheck --> trailing2[pdns_client.go\nensureTrailingDot]
-
-    run --> approved[approve.go\nIsApproved]
-    approved --> pending[status.go\nSetPhase(PendingApproval)]
-    run --> provisioning[status.go\nSetPhase(Provisioning)]
-    run --> failHelpers[fn.go\nfatal / fail / done]
+    C --> I[approve.go\nIsApproved]
+    I --> J[status.go\nPendingApproval]
+    I --> L[status.go\nProvisioning]
+    C --> M[fn.go\nresponse helpers]
 ```
 
 ## File Roles
