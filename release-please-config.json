@@ -6,27 +6,32 @@
     "modules/runner": {
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
     },
     "types/xtenant": {
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
     },
     "cmd/gen-xrd": {
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
     },
     "functions/xtenant-validate": {
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
     },
     "functions/xtenant-render": {
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
     }
   }
 }
