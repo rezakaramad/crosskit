@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
+	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
-
-	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
