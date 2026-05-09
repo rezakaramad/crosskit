@@ -3,7 +3,8 @@ name: GoReleaser
 on:
   push:
     tags:
-      - 'modules/*/v[0-9]*'
+      - 'modules/runner/v[0-9]*'
+      - 'cmd/*/v[0-9]*'
 
 permissions:
   contents: write

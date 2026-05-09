@@ -2,11 +2,7 @@ module github.com/rezakaramad/crossplane-toolkit/cmd/gen-xrd
 
 go 1.26.2
 
-replace github.com/rezakaramad/crossplane-toolkit/modules/generator => ../../modules/generator
-
-replace github.com/rezakaramad/crossplane-toolkit/types/xtenant => ../../types/xtenant
-
-require github.com/rezakaramad/crossplane-toolkit/modules/generator v0.0.0-00010101000000-000000000000
+require github.com/rezakaramad/crossplane-toolkit/modules/generator v0.0.0-20260509074215-118a40103ede
 
 require (
 	dario.cat/mergo v1.0.2 // indirect

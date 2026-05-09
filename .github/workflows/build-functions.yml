@@ -129,6 +129,7 @@ jobs:
           fi
 
           echo "FUNCTION_NAME=${{ matrix.function }}" >> $GITHUB_ENV
+          echo "PUBLISHED_FUNCTION_NAME=function-${{ matrix.function }}" >> $GITHUB_ENV
           echo "FUNCTION_PATH=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}" >> $GITHUB_ENV
           echo "PACKAGE_FILE=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}/${{ matrix.function }}.xpkg" >> $GITHUB_ENV
           echo "RUNTIME_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.function }}-runtime:${IMAGE_TAG}" >> $GITHUB_ENV
@@ -172,8 +173,8 @@ jobs:
         run: |
           crossplane xpkg push \
             -f $PACKAGE_FILE \
-            ghcr.io/${{ github.repository_owner }}/${FUNCTION_NAME}:${XPKG_VERSION}
+            ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:${XPKG_VERSION}
 
           crossplane xpkg push \
             -f $PACKAGE_FILE \
-            ghcr.io/${{ github.repository_owner }}/${FUNCTION_NAME}:latest
+            ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:latest
