@@ -149,11 +149,7 @@ func (f *Function) RunFunction(
 	for _, binding := range bindings {
 		maps.Copy(desired, buildPrincipalResources(tenant, binding, input.Azure))
 
-		objectID, ready, err := resolveBindingPrincipalObjectID(observed, input.Azure, binding)
-		if err != nil {
-			response.Fatal(rsp, xperrors.Wrapf(err, "cannot resolve principal objectId for binding %s/%s/%s", binding.Name, binding.Cluster, binding.EnvironmentPrefix))
-			return rsp, nil
-		}
+		objectID, ready := resolveBindingPrincipalObjectID(observed, input.Azure, binding)
 		if !ready {
 			waitingForPrincipal = true
 			continue

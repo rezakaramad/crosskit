@@ -148,23 +148,23 @@ func buildPrincipalResources(t TenantSpec, binding inputv1beta1.BindingInput, az
 	}
 }
 
-func resolveBindingPrincipalObjectID(observed map[resource.Name]resource.ObservedComposed, azure inputv1beta1.AzureInput, binding inputv1beta1.BindingInput) (string, bool, error) {
+func resolveBindingPrincipalObjectID(observed map[resource.Name]resource.ObservedComposed, azure inputv1beta1.AzureInput, binding inputv1beta1.BindingInput) (string, bool) {
 	observedResource, ok := observed[principalResourceName(azure, binding)]
 	if !ok || observedResource.Resource == nil {
-		return "", false, nil
+		return "", false
 	}
 
 	objectID, err := observedResource.Resource.GetString("status.atProvider.objectId")
 	if err == nil && objectID != "" {
-		return objectID, true, nil
+		return objectID, true
 	}
 
 	providerID, idErr := observedResource.Resource.GetString("status.atProvider.id")
 	if idErr == nil && providerID != "" {
-		return providerID, true, nil
+		return providerID, true
 	}
 
 	// Neither field is populated yet — provider hasn't synced the resource.
 	// Signal "not ready" so the caller waits rather than treating this as fatal.
-	return "", false, nil
+	return "", false
 }
