@@ -21,10 +21,6 @@ func (fakeDNSClient) CheckDNSAvailable(_ context.Context, _ string) (DNSAvailabi
 	return DNSAvailabilityResult{Available: true}, nil
 }
 
-func stringPtr(s string) *string {
-	return &s
-}
-
 func TestRunFunction(t *testing.T) {
 	type args struct {
 		ctx context.Context
@@ -179,7 +175,7 @@ func TestRunFunction(t *testing.T) {
 							Type:    "Ready",
 							Status:  fnv1.Status_STATUS_CONDITION_TRUE,
 							Reason:  "Provisioning",
-							Message: stringPtr("XTenant approved, provisioning in progress"),
+							Message: new("XTenant approved, provisioning in progress"),
 							Target:  fnv1.Target_TARGET_COMPOSITE.Enum(),
 						},
 					},
