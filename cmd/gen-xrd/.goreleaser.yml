@@ -1,9 +1,5 @@
 version: 2
 
-monorepo:
-  tag_prefix: "cmd/gen-xrd/"
-  dir: cmd/gen-xrd
-
 builds:
   - id: gen-xrd
     main: ./cmd/gen-xrd

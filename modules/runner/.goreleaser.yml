@@ -1,11 +1,5 @@
 version: 2
 
-monorepo:
-  # Strips this prefix from the git tag to extract the semver.
-  # Tag modules/runner/v0.3.1 → version 0.3.1
-  tag_prefix: "modules/runner/"
-  dir: modules/runner
-
 # No executable entrypoints yet. When you add a cmd/ package, replace the
 # skip flag with the actual build targets, for example:
 #
