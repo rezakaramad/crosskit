@@ -54,8 +54,8 @@ $ task check:functions
 ## Release flow
 There are two moving parts here:
 
-- [release-please](https://github.com/googleapis/release-please) watches `main` and prepares version bumps and GitHub releases for the configured components.
-- Package publication only happens when you push a component tag that matches the workflow pattern.
+- [release-please](https://github.com/googleapis/release-please) watches `main`, updates the component changelogs, and creates the GitHub Release entries for the configured components.
+- Only some components have a tag-triggered publish workflow. For the rest, the version tag itself is the release artifact for Go module consumers.
 
 Use this sequence:
 
@@ -68,11 +68,11 @@ Use this sequence:
 
 For normal releases, do not create publish tags from feature branches.
 
-**Tag patterns** used by the current workflows:
+**Release tags** used in this repo:
 
 - Functions: `functions/<name>/v<semver>`
 - CLI binaries: `cmd/<name>/v<semver>`
-- Shared types: `types/xtenant/v<semver>`
+- Go libraries: `modules/<name>/v<semver>` and `types/<name>/v<semver>`
 
 Example:
 
@@ -87,8 +87,8 @@ What each tag does:
 - `functions/xtenant-validate/v0.1.0` publishes `ghcr.io/<owner>/function-xtenant-validate:v0.1.0`
 - `functions/xtenant-render/v0.1.0` publishes `ghcr.io/<owner>/function-xtenant-render:v0.1.0`
 - `cmd/gen-xrd/v0.1.0` triggers the CLI binary release workflow and uploads archives plus checksums to the GitHub Release
-
-For Go libraries under `modules/`, the semver tag is the release artifact for Go module consumers. There is no separate binary/package publishing workflow for those modules.
+- `modules/runner/v0.1.0` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
+- `types/xtenant/v0.1.0` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
 
 When you look at GitHub Packages, you will usually see both `function-...` and `...-runtime` images:
 
@@ -100,6 +100,7 @@ GitHub Releases and GHCR package versions are related, but they are not the same
 
 - GitHub Releases come from the release workflows.
 - GHCR function package versions come directly from the function tag that triggered publication.
+- Go module consumers resolve `modules/*` and `types/*` directly from the matching semver tag.
 - If you want Releases and Packages to stay aligned, publish functions with the same semver that was just merged by [release-please](https://github.com/googleapis/release-please) for that component.
 
 ## Notes
