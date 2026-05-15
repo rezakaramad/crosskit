@@ -77,18 +77,18 @@ For normal releases, do not create publish tags from feature branches.
 Example:
 
 ```sh
-git tag functions/xtenant-validate/v0.1.0
-git tag functions/xtenant-render/v0.1.0
-git push origin functions/xtenant-validate/v0.1.0 functions/xtenant-render/v0.1.0
+git tag functions/xtenant-validate/v0.0.1
+git tag functions/xtenant-render/v0.0.1
+git push origin functions/xtenant-validate/v0.0.1 functions/xtenant-render/v0.0.1
 ```
 
 What each tag does:
 
-- `functions/xtenant-validate/v0.1.0` publishes `ghcr.io/<owner>/function-xtenant-validate:v0.1.0`
-- `functions/xtenant-render/v0.1.0` publishes `ghcr.io/<owner>/function-xtenant-render:v0.1.0`
-- `cmd/gen-xrd/v0.1.0` triggers the CLI binary release workflow and uploads archives plus checksums to the GitHub Release
-- `modules/runner/v0.1.0` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
-- `types/xtenant/v0.1.0` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
+- `functions/xtenant-validate/v0.0.1` publishes `ghcr.io/<owner>/function-xtenant-validate:v0.0.1`
+- `functions/xtenant-render/v0.0.1` publishes `ghcr.io/<owner>/function-xtenant-render:v0.0.1`
+- `cmd/gen-xrd/v0.0.1` triggers the CLI binary release workflow and uploads archives plus checksums to the GitHub Release
+- `modules/runner/v0.0.1` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
+- `types/xtenant/v0.0.1` creates the version tag consumed by `go get`; there is no separate binary/package publishing workflow
 
 When you look at GitHub Packages, you will usually see both `function-...` and `...-runtime` images:
 
