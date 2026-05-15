@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 	corev1 "k8s.io/api/core/v1"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
