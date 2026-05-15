@@ -43,7 +43,8 @@ jobs:
         with:
           distribution: goreleaser
           version: ~> v2
-          args: build --clean --config ${{ steps.meta.outputs.module }}/.goreleaser.yml
+          workdir: ${{ steps.meta.outputs.module }}
+          args: build --clean --config .goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

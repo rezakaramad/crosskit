@@ -2,7 +2,7 @@ version: 2
 
 builds:
   - id: gen-xrd
-    main: ./cmd/gen-xrd
+    main: .
     binary: gen-xrd
     goos:
       - linux
