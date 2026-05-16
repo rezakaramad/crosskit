@@ -37,7 +37,9 @@ It is a small monorepo, and each top-level directory has a pretty specific job.
 - We use a [Taskfile](https://taskfile.dev) to keep the common checks in one place.
 - Run `task --list` to see what is available, then pick the check you need for one function or for all of them.
 - The underlying scripts live in [hack/](./hack/), following the Kubernetes/CNCF convention for internal dev tooling.
-- [.vscode/tasks.json](./.vscode/tasks.json) wires the same scripts into the VS Code task runner (Terminal → Run Task), so you can run them from the editor without the terminal.
+- [Taskfile.yml](./Taskfile.yml) is the real source of truth for local commands.
+- [.vscode/tasks.json](./.vscode/tasks.json) is only VS Code convenience. It makes the same commands clickable from `Tasks: Run Task`, but it duplicates what the Taskfile already defines.
+
 
 A few useful ones:
 
@@ -48,7 +50,12 @@ task: Available tasks for this project:
 * check:functions:              Run tidy, lint, and tests for all function modules.
 * check:xtenant-render:         Run checks for xtenant-render.
 * check:xtenant-validate:       Run checks for xtenant-validate.
+* fix:function:                 Auto-fix tidy, lint, and formatting issues for one function module.
+* fix:functions:                Auto-fix tidy, lint, and formatting issues for all function modules.
+* fix:xtenant-render:           Auto-fix xtenant-render.
+* fix:xtenant-validate:         Auto-fix xtenant-validate.
 
+$ task fix:xtenant-validate
 $ task check:xtenant-validate
 $ task check:functions
 ```
