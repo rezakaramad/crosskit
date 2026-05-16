@@ -1,6 +1,28 @@
 version: '3'
 
 tasks:
+  fix:function:
+    desc: Auto-fix tidy, lint, and formatting issues for one function module.
+    requires:
+      vars: [FUNCTION]
+    cmds:
+      - ./hack/fix-functions.sh {{.FUNCTION}}
+
+  fix:functions:
+    desc: Auto-fix tidy, lint, and formatting issues for all function modules.
+    cmds:
+      - ./hack/fix-functions.sh
+
+  fix:xtenant-validate:
+    desc: Auto-fix xtenant-validate.
+    cmds:
+      - ./hack/fix-functions.sh xtenant-validate
+
+  fix:xtenant-render:
+    desc: Auto-fix xtenant-render.
+    cmds:
+      - ./hack/fix-functions.sh xtenant-render
+
   check:function:
     desc: Run tidy, lint, and tests for one function module.
     requires:
