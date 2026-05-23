@@ -7,6 +7,7 @@ import (
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -57,10 +58,13 @@ type Function struct {
 	gitopsRepoURL      string
 	gitopsRepoBranch   string
 	gitopsRepoBasePath string
+
+	// Next-Insight client; nil when Next-Insight integration is not configured.
+	nextInsight nextinsight.Client
 }
 
 func (f *Function) RunFunction(
-	_ context.Context,
+	ctx context.Context,
 	req *fnv1.RunFunctionRequest,
 ) (*fnv1.RunFunctionResponse, error) {
 	log := f.log.WithValues("tag", req.GetMeta().GetTag())
@@ -197,7 +201,19 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 8. Bundle to YAML and write RepositoryFile
+	// 8. Enrich with Next-Insight metadata labels (optional)
+	// ---------------------------------------------------------------------
+	niLabels, err := fetchNextInsightLabels(ctx, f.nextInsight, tenant.Spec.Options.Labels[nextInsightAppIDLabel])
+	if err != nil {
+		// Non-fatal: log and continue — metadata enrichment must not block provisioning.
+		log.Info("Skipping Next-Insight label enrichment", "error", err)
+		niLabels = map[string]string{}
+	}
+
+	applyNextInsightLabels(niLabels, append(baselineApps, gitopsApp)...)
+
+	// ---------------------------------------------------------------------
+	// 9. Bundle to YAML and write RepositoryFile
 	// ---------------------------------------------------------------------
 	resources := make([]*composed.Unstructured, 0, 1+len(baselineApps))
 	resources = append(resources, gitopsApp)

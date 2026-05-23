@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 
 	"github.com/crossplane/function-sdk-go"
 )
@@ -46,6 +47,8 @@ func (c *CLI) Run() error {
 		gitopsRepoURL:      getEnv("GITOPS_REPO_URL", "kubepave"),
 		gitopsRepoBranch:   getEnv("GITOPS_REPO_BRANCH", "main"),
 		gitopsRepoBasePath: getEnv("GITOPS_REPO_BASE_PATH", "charts/gitops-tenant"),
+
+		nextInsight: newNextInsightClient(),
 	}
 
 	return function.Serve(fn,
@@ -60,6 +63,28 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// newNextInsightClient returns a configured Next-Insight client when the
+// NEXTINSIGHT_BASE_URL environment variable is set, or nil otherwise.
+// The token is read from NEXTINSIGHT_TOKEN.
+//
+// Mount the token as an env-var secret in your Deployment:
+//
+//	env:
+//	  - name: NEXTINSIGHT_BASE_URL
+//	    value: "https://app.next-insight.com"
+//	  - name: NEXTINSIGHT_TOKEN
+//	    valueFrom:
+//	      secretKeyRef:
+//	        name: nextinsight-credentials
+//	        key: token
+func newNextInsightClient() nextinsight.Client {
+	baseURL := os.Getenv("NEXTINSIGHT_BASE_URL")
+	if baseURL == "" {
+		return nil
+	}
+	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
 }
 
 func discoverNamespace() string {
