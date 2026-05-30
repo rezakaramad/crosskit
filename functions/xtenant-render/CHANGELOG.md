@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0](https://github.com/rezakaramad/crossplane-toolkit/compare/functions/xtenant-render/v0.0.1...functions/xtenant-render/v0.1.0) (2026-05-30)
+
+
+### Features
+
+* **functions:** integrate Next-Insight tenant metadata enrichment and validation ([caa73db](https://github.com/rezakaramad/crossplane-toolkit/commit/caa73dbf138a03fcd52d5e3ed13e7e487fcd6e8d))
+
+
+### Bug Fixes
+
+* **functions:** bump nextinsight and xtenant deps to v0.1.1 ([41a31ab](https://github.com/rezakaramad/crossplane-toolkit/commit/41a31abfdf99e3212d24cbfc2598f1e9f224193c))
+
 ## [0.1.0](https://github.com/rezakaramad/crossplane-toolkit/compare/functions/xtenant-render/v0.0.1...functions/xtenant-render/v0.1.0) (2026-05-29)
 
 
