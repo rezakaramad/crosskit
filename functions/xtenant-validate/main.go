@@ -4,7 +4,6 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
@@ -76,23 +75,4 @@ func newNextInsightClient() nextinsight.Client {
 		return nil
 	}
 	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-const defaultCrossplaneNamespace = "crossplane-system"
-
-func discoverNamespace() string {
-	const path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	if data, err := os.ReadFile(path); err == nil {
-		if namespace := strings.TrimSpace(string(data)); namespace != "" {
-			return namespace
-		}
-	}
-	return getEnv("CROSSPLANE_NAMESPACE", defaultCrossplaneNamespace)
 }
