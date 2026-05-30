@@ -9,7 +9,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/rezakaramad/crossplane-toolkit/modules/nextinsight v0.1.0
-	github.com/rezakaramad/crossplane-toolkit/types/xtenant v0.0.1
+	github.com/rezakaramad/crossplane-toolkit/types/xtenant v0.1.0
 	golang.org/x/text v0.33.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/apimachinery v0.36.0
