@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -22,11 +23,24 @@ type Deps struct {
 	DNS              DNSClient
 	BaseDomain       string
 	WorkloadClusters []xtenant.Cluster
+	// NextInsight is optional; when non-nil, TeamID is verified against the API.
+	NextInsight nextinsight.Client
 }
 
 // Validate performs full validation of an XTenant.
-// It checks DNS availability for every workload cluster the tenant targets.
+// It checks DNS availability for every workload cluster the tenant targets,
+// and when a TeamID is set, verifies it exists in Next-Insight.
 func Validate(ctx context.Context, t xtenant.XTenant, d Deps) *ValidationError {
+	if d.NextInsight != nil && t.Spec.TeamID != "" {
+		if err := d.NextInsight.TeamExists(ctx, t.Spec.TeamID); err != nil {
+			return &ValidationError{
+				Reason:    "InvalidTeamID",
+				Message:   fmt.Sprintf("spec.teamId %q was not found in Next-Insight", t.Spec.TeamID),
+				Retryable: false,
+			}
+		}
+	}
+
 	dnsName := t.Spec.DNSName
 
 	for _, cluster := range d.WorkloadClusters {

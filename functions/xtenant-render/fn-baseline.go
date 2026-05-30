@@ -46,10 +46,6 @@ func buildBaselineApplications(
 			"tenant": map[string]any{
 				metadataNameKey: t.GetName(),
 				"dnsName":       t.Spec.DNSName,
-				"owner": map[string]any{
-					"team":  t.Spec.Owner.Team,
-					"email": t.Spec.Owner.Email,
-				},
 			},
 			"environmentPrefix": c.Prefix,
 		}

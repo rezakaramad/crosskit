@@ -203,14 +203,14 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// 8. Enrich with Next-Insight metadata labels (optional)
 	// ---------------------------------------------------------------------
-	niLabels, err := fetchNextInsightLabels(ctx, f.nextInsight, tenant.Spec.Options.Labels[nextInsightAppIDLabel])
+	nextInsightLabels, err := fetchTenantLabels(ctx, f.nextInsight, tenant.Spec.TeamID, input.NextInsight.LabelPrefix)
 	if err != nil {
 		// Non-fatal: log and continue — metadata enrichment must not block provisioning.
 		log.Info("Skipping Next-Insight label enrichment", "error", err)
-		niLabels = map[string]string{}
+		nextInsightLabels = map[string]string{}
 	}
 
-	applyNextInsightLabels(niLabels, append(baselineApps, gitopsApp)...)
+	applyNextInsightLabels(nextInsightLabels, append(baselineApps, gitopsApp)...)
 
 	// ---------------------------------------------------------------------
 	// 9. Bundle to YAML and write RepositoryFile

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,9 +27,10 @@ import (
 type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 
-	log  logging.Logger
-	kube ctrlclient.Client
-	dns  DNSClient
+	log         logging.Logger
+	kube        ctrlclient.Client
+	dns         DNSClient
+	nextInsight nextinsight.Client
 }
 
 func (f *Function) RunFunction(
@@ -123,6 +125,7 @@ func (f *Function) RunFunction(
 		DNS:              dnsClient,
 		BaseDomain:       input.DNS.BaseDomain,
 		WorkloadClusters: workloadClusters,
+		NextInsight:      f.nextInsight,
 	}); verr != nil {
 		if verr.Retryable {
 			SetPhase(xr, PhaseValidating)
@@ -192,10 +195,6 @@ func fromObservedXR(xr *resource.Composite) (xtenant.XTenant, error) {
 	if strings.TrimSpace(t.Spec.DNSName) == "" {
 		return t, fmt.Errorf("required field missing: spec.dnsName")
 	}
-	if strings.TrimSpace(t.Spec.Owner.Team) == "" {
-		return t, fmt.Errorf("required field missing: spec.owner.team")
-	}
-
 	return t, nil
 }
 

@@ -3,7 +3,11 @@
 package main
 
 import (
+	"os"
+	"strings"
+
 	"github.com/alecthomas/kong"
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -45,8 +49,9 @@ func (c *CLI) Run() error {
 	}
 
 	fn := &Function{
-		log:  log,
-		kube: kubeClient,
+		log:         log,
+		kube:        kubeClient,
+		nextInsight: newNextInsightClient(),
 		// dns is intentionally nil — buildDNSClient selects the provider at
 		// request time using input.DNS.provider from the Composition step config.
 	}
@@ -61,4 +66,33 @@ func (c *CLI) Run() error {
 func main() {
 	ctx := kong.Parse(&CLI{}, kong.Description("A Crossplane Composition Function."))
 	ctx.FatalIfErrorf(ctx.Run())
+}
+
+// newNextInsightClient returns a configured Next-Insight client when
+// NEXTINSIGHT_BASE_URL is set, or nil to skip Next-Insight validation.
+func newNextInsightClient() nextinsight.Client {
+	baseURL := os.Getenv("NEXTINSIGHT_BASE_URL")
+	if baseURL == "" {
+		return nil
+	}
+	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+const defaultCrossplaneNamespace = "crossplane-system"
+
+func discoverNamespace() string {
+	const path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	if data, err := os.ReadFile(path); err == nil {
+		if namespace := strings.TrimSpace(string(data)); namespace != "" {
+			return namespace
+		}
+	}
+	return getEnv("CROSSPLANE_NAMESPACE", defaultCrossplaneNamespace)
 }

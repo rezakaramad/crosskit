@@ -27,6 +27,10 @@ type Input struct {
 
 	// Tenant contains the binding assignments rendered into the GitOps chart.
 	Tenant TenantInput `json:"tenant"`
+
+	// NextInsight configures optional Next-Insight metadata enrichment.
+	// +optional
+	NextInsight NextInsightInput `json:"nextInsight,omitempty"`
 }
 
 // GithubInput configures the Crossplane RepositoryFile resource written by this function.
@@ -77,4 +81,12 @@ type BindingInput struct {
 	// (e.g. dev, test, prod).
 	// +kubebuilder:validation:MinLength=1
 	EnvironmentPrefix string `json:"environmentPrefix"`
+}
+
+// NextInsightInput configures the optional Next-Insight metadata enrichment.
+type NextInsightInput struct {
+	// LabelPrefix is the Kubernetes label key prefix applied to all labels
+	// produced from Next-Insight metadata (e.g. "nextinsight.rezakara.demo/").
+	// +optional
+	LabelPrefix string `json:"labelPrefix,omitempty"`
 }
