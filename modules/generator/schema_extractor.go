@@ -235,6 +235,41 @@ func findModuleDir(packagePath string) (string, error) {
 		return filepath.Join(goModCache(), r.Mod.Path+"@"+r.Mod.Version), nil
 	}
 
+	// Strategy 5: walk the go.work workspace (if active) and match against the
+	// module declared in each local 'use' directory.
+	// This covers the case where the target package lives in a workspace module
+	// that is not a declared dependency of the binary being run (e.g. gen-xrd
+	// receiving a --package path that belongs to types/* which it never imports).
+	if workFile := goWorkFile(); workFile != "" {
+		workBytes, err := os.ReadFile(workFile)
+		if err == nil {
+			wf, err := modfile.ParseWork(workFile, workBytes, nil)
+			if err == nil {
+				workDir := filepath.Dir(workFile)
+				for _, use := range wf.Use {
+					useDir := use.Path
+					if !filepath.IsAbs(useDir) {
+						useDir = filepath.Join(workDir, useDir)
+					}
+					useGoMod := filepath.Join(useDir, "go.mod")
+					useGoModBytes, err := os.ReadFile(useGoMod)
+					if err != nil {
+						continue
+					}
+					useMf, err := modfile.Parse(useGoMod, useGoModBytes, nil)
+					if err != nil || useMf.Module == nil {
+						continue
+					}
+					if !moduleContainsPackage(useMf.Module.Mod.Path, packagePath) {
+						continue
+					}
+					subPath := strings.TrimPrefix(packagePath, useMf.Module.Mod.Path)
+					return filepath.Join(useDir, subPath), nil
+				}
+			}
+		}
+	}
+
 	return "", fmt.Errorf("could not find module directory for package %q", packagePath)
 }
 
@@ -302,6 +337,19 @@ func goModFile() (string, error) {
 		return "", err
 	}
 	return filepath.Join(root, "go.mod"), nil
+}
+
+// goWorkFile returns the path to the active go.work file, or "" if none is active.
+func goWorkFile() string {
+	out, err := exec.Command("go", "env", "GOWORK").Output()
+	if err != nil {
+		return ""
+	}
+	p := strings.TrimSpace(string(out))
+	if p == "" || p == os.DevNull {
+		return ""
+	}
+	return p
 }
 
 // Checks if a package really belongs to a module
