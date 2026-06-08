@@ -10,6 +10,7 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 functions_dir="$repo_root/functions"
 golangci_config="$repo_root/.golangci.yml"
+export GOWORK="$repo_root/go.work"
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
   echo "error: golangci-lint is not installed or not on PATH" >&2

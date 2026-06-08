@@ -205,12 +205,32 @@ jobs:
 
       # Example tag: ghcr.io/rezakaramad/xtenant-validate-runtime:v0.3.1
       - name: Build runtime image
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ctx=$(mktemp -d)
+          trap 'rm -rf "$ctx"' EXIT
+          cp -a "$FUNCTION_PATH/." "$ctx/"
+
+          module_prefix="github.com/${{ github.repository }}"
+          while IFS= read -r module; do
+            rel="${module#${module_prefix}/}"
+            if [[ -d "$rel" ]]; then
+              mkdir -p "$ctx/$(dirname "$rel")"
+              cp -a "$rel" "$ctx/$rel"
+              (
+                cd "$ctx"
+                go mod edit -replace="$module=./$rel"
+              )
+            fi
+          done < <(awk '$2 == "v0.0.0" {print $1}' "$FUNCTION_PATH/go.mod" | grep "^${module_prefix}/modules/" || true)
+
           docker build \
             --platform linux/amd64 \
             --build-arg GO_VERSION=${{ env.GO_VERSION }} \
             -t "$RUNTIME_IMAGE" \
-            "$FUNCTION_PATH"
+            "$ctx"
 
       - name: Push runtime image
         if: startsWith(github.ref, 'refs/tags/')
