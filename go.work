@@ -4,8 +4,10 @@ use (
 	./cmd/gen-xrd
 	./functions/xtenant-render
 	./functions/xtenant-validate
+	./modules/gcpdns
 	./modules/generator
 	./modules/nextinsight
+	./modules/pdns
 	./modules/runner
 	./types/xtenant
 )
