@@ -180,9 +180,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir tmp && cd tmp
-          curl -sL "https://raw.githubusercontent.com/crossplane/crossplane/${{ env.CROSSPLANE_CLI_VERSION }}/install.sh" | sh
-          sudo mv crossplane /usr/local/bin
+          version="${{ env.CROSSPLANE_CLI_VERSION }}"
+          url="https://releases.crossplane.io/stable/${version}/bin/linux_amd64/crank"
+          curl -fsSL "${url}" -o /tmp/crossplane
+          chmod +x /tmp/crossplane
+          sudo mv /tmp/crossplane /usr/local/bin/crossplane
 
       - name: Login to ghcr.io
         if: startsWith(github.ref, 'refs/tags/')
