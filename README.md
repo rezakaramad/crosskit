@@ -81,9 +81,13 @@ functions/<name>/
 └── go.mod
 ```
 
-How to add a new function (minimal):
+**How to add a new function (minimal):**
 
-1. Create `functions/<name>/` with the `Dockerfile`, `package/crossplane.yaml`, and `go.mod`.
+1. Scaffold the function with the Crossplane CLI:
+   ```sh
+   crossplane xpkg init <name> function-template-go --directory functions/<name>
+   ```
+   This creates the `Dockerfile`, `go.mod`, `package/crossplane.yaml`, and Go boilerplate under `functions/<name>/`.
 2. Add the module to `go.work` (so local CI resolves modules consistently).
 3. Add a `packages` entry for `functions/<name>` in `release-please-config.json` (include `initial-version` if desired).
 4. Open a PR and merge — release-please will create the release PR and tags, and CI will publish the packages automatically when the release PR is merged.
