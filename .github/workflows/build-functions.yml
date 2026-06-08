@@ -42,10 +42,19 @@ jobs:
 
           # If the workflow was triggered by a tag, it assumes you want exactly one function.
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            tag="${{ github.ref_name }}"
+
+            # Library/CLI tags (e.g. types/xtenant/v0.2.0) are not function builds.
+            # Produce an empty matrix so all downstream jobs are no-ops.
+            if [[ "$tag" != functions/* ]]; then
+              echo "Tag ${tag} is not a function tag; nothing to build."
+              echo 'matrix={"function":[]}' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
             # Takes the tag name e.g., functions/xtenant-validate/v0.3.1
-            function_name="${{ github.ref_name }}"
             # Removes the "functions/" prefix e.g., xtenant-validate/v0.3.1
-            function_name="${function_name#functions/}"
+            function_name="${tag#functions/}"
             # Removes the "/v0.3.1" suffix e.g., xtenant-validate
             function_name="${function_name%/v*}"
             # Converts to JSON array e.g., ["xtenant-validate"]

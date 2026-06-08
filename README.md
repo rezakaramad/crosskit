@@ -89,42 +89,24 @@ functions/<name>/
 | Step | Who | Result |
 | --- | --- | --- |
 | Open release PR | release-please (on merge to `main`) | Bumped changelogs + `.release-please-manifest.json` |
-| Merge release PR | **You** | GitHub Releases created |
-| Push library tags | **You** | `types/*` and `modules/*` semver tags indexed by Go proxy |
-| Push function tags | **You** | Build workflow → runtime image + Crossplane package in GHCR |
-
-**Tag ordering** — the Go proxy caches versions immutably, so always tag in this order:
-
-```
-types/* → modules/* → functions/*
-```
-
-Never delete and recreate a tag — bump the patch version instead. CI is unaffected because `go.work` is committed and resolves all modules locally.
+| Merge release PR | **You** | GitHub Releases + tags created; build workflow dispatched automatically |
+| Build and publish | CI | Runtime image + Crossplane package pushed to GHCR |
 
 **Steps:**
 
-1. Merge your PR to `main`; update function `go.mod` to the upcoming library version first if you changed a library API (CI compiles fine via `go.work`)
-2. Merge the release PR opened by release-please
-3. Tag and push libraries, verify proxy:
-   ```sh
-   git pull && git tag types/xtenant/v0.2.0 && git push origin types/xtenant/v0.2.0
-   curl -s "https://proxy.golang.org/github.com/rezakaramad/crossplane-toolkit/types/xtenant/@v/v0.2.0.info"
-   # must return {"Version":"v0.2.0",...} before continuing
-   ```
-4. Tag and push functions:
-   ```sh
-   git tag functions/xtenant-render/v0.1.0 functions/xtenant-validate/v0.1.0
-   git push origin functions/xtenant-render/v0.1.0 functions/xtenant-validate/v0.1.0
-   ```
+1. Merge your PR to `main`; if you changed a library API, update function `go.mod` to the upcoming library version first (CI compiles fine via `go.work`)
+2. Merge the release PR opened by release-please — that's it
 
-> **release-please tags don't trigger the build workflow** — GitHub blocks `GITHUB_TOKEN` from triggering workflows. If tags already exist and `git push` says "Everything up-to-date", dispatch manually:
-> ```sh
-> gh workflow run "Build and publish Crossplane function packages" --ref functions/<name>/v<version>
-> ```
+After you merge the release PR, release-please creates the GitHub Releases and tags, and the `trigger-function-builds` job dispatches the build workflow automatically for each released function.
+
+> Never delete and recreate a tag — bump the patch version instead.
 
 > Commit scopes must match package paths exactly (`feat!(types/xtenant):` not `feat!(xtenant):`) or release-please misses the component.
 
-**Letting Copilot do this:** say *"The release PR is merged — do the release"* and it will handle tag ordering and proxy verification automatically.
+**If something goes wrong** (workflow failed, tag already existed, etc.), dispatch the build manually:
+```sh
+gh workflow run "Build and publish Crossplane function packages" --ref functions/<name>/v<version>
+```
 
 **Useful commands:**
 ```sh
@@ -136,10 +118,5 @@ gh api '/users/rezakaramad/packages?package_type=container&per_page=100' \
 ```
 
 **Version source of truth:** `release-please-config.json` (components) and `.release-please-manifest.json` (current versions).
-
-## Notes
-
-- This repo uses multiple Go modules instead of one top-level module.
-- Function packaging is validated on branch and pull request builds, then only published from function version tags.
 
 Made with 🤓, 🐧 and 🍷.
