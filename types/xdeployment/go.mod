@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crossplane-toolkit/types/xtenant
+module github.com/rezakaramad/crossplane-toolkit/types/xdeployment
 
 go 1.26.2
 
