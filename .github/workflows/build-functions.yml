@@ -55,6 +55,7 @@ jobs:
           version: ${{ env.GOLANGCI_VERSION }}
           working-directory: ${{ steps.vars.outputs.path }}
           args: --config ../../.golangci.yml
+          skip-cache: true
 
       - name: Test
         working-directory: ${{ steps.vars.outputs.path }}
