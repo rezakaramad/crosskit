@@ -4,8 +4,6 @@ on:
   pull_request:
     paths:
       - 'functions/**'
-      - 'go.work'
-      - 'go.work.sum'
       - '.golangci.yml'
 
 permissions:
@@ -58,5 +56,5 @@ jobs:
 
       - name: Verify ${{ matrix.function }}
         env:
-          GOWORK: ${{ github.workspace }}/go.work
+          GOWORK: off
         run: ./hack/verify-functions.sh ${{ matrix.function }}

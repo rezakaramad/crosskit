@@ -81,9 +81,25 @@ jobs:
           sudo install -m 0755 /tmp/crossplane /usr/local/bin/crossplane
           crossplane version
 
+      # Write a plain Docker config (no credential helper) so the crossplane
+      # CLI's OCI client can authenticate against ghcr.io on private repos.
+      # The runner's default Docker config may use a credential helper binary
+      # that isn't available to non-docker processes.
+      - name: Write Docker config for Crossplane CLI
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          mkdir -p /tmp/xpkg-docker
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}' \
+            "$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w 0)" \
+            > /tmp/xpkg-docker/config.json
+
       # Build the crossplane xpkg, embedding the runtime image by digest for
       # a reproducible and content-addressable package.
       - name: Build crossplane xpkg
+        env:
+          DOCKER_CONFIG: /tmp/xpkg-docker
         run: |
           crossplane xpkg build \
             --package-root=functions/${{ steps.meta.outputs.function }}/package \
@@ -91,6 +107,8 @@ jobs:
             -o /tmp/function.xpkg
 
       - name: Push crossplane xpkg
+        env:
+          DOCKER_CONFIG: /tmp/xpkg-docker
         run: |
           crossplane xpkg push \
             -f /tmp/function.xpkg \
