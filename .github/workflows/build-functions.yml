@@ -224,7 +224,7 @@ jobs:
                 go mod edit -replace="$module=./$rel"
               )
             fi
-          done < <(awk '$2 == "v0.0.0" {print $1}' "$FUNCTION_PATH/go.mod" | grep "^${module_prefix}/modules/" || true)
+          done < <(awk '$2 == "v0.0.0" {print $1}' "$FUNCTION_PATH/go.mod" | grep "^${module_prefix}/" || true)
 
           docker build \
             --platform linux/amd64 \

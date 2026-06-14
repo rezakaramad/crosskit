@@ -157,8 +157,6 @@ github.com/prometheus/procfs v0.19.2 h1:zUMhqEW66Ex7OXIiDkll3tl9a1ZdilUOd/F6ZXw4
 github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05ZpYlu+b4J7mw=
 github.com/rezakaramad/crossplane-toolkit/modules/nextinsight v0.2.0 h1:QIZCwNyYdGMK2n7XfsrnlsBdwhg/uqgu06N2bRUGEQ0=
 github.com/rezakaramad/crossplane-toolkit/modules/nextinsight v0.2.0/go.mod h1:ahugS/DlIuj/ZEuoCBlBXDzC4nY0+4rbNP5ffD778b4=
-github.com/rezakaramad/crossplane-toolkit/types/xdeployment v0.0.1 h1:bDbsd+rJ+aFeK6eRhD/tqIbt2n8hpP4Zigkyev8JYk8=
-github.com/rezakaramad/crossplane-toolkit/types/xdeployment v0.0.1/go.mod h1:d4ixBp+ziSl+y6Cxzx0zTqiflrVmg+2J6n1iXSi+MaU=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
