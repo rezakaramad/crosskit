@@ -4,8 +4,9 @@ import (
 	"context"
 	"maps"
 
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
+
+	"github.com/crossplane/function-sdk-go/resource/composed"
 )
 
 // FetchApplicationLabels returns workload labels from Next-Insight for the given appID.

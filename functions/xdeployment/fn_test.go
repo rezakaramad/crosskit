@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/crossplane/function-sdk-go/logging"
@@ -26,9 +25,6 @@ func TestRunFunction(t *testing.T) {
 			},
 			check: func(t *testing.T, rsp *fnv1.RunFunctionResponse) {
 				t.Helper()
-				if diff := cmpopts.AnyError.Error(); diff == "" {
-					// just check structure
-				}
 				if rsp.Meta.Ttl.AsDuration() != durationpb.New(response.DefaultTTL).AsDuration() {
 					t.Errorf("unexpected TTL")
 				}
