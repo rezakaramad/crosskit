@@ -227,17 +227,8 @@ func TestRunFunction(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			f := &Function{
-				log:                  logging.NewNopLogger(),
-				exportRepository:     "kubepave-tenants",
-				exportRepoBranch:     "main",
-				exportRepoBasePath:   "tenants",
-				crossplaneNamespace:  defaultCrossplaneNamespace,
-				baselineRepoURL:      "https://github.com/rezakaramad/kubepave.git",
-				baselineRepoBranch:   "main",
-				baselineRepoBasePath: "charts/baseline-tenant",
-				gitopsRepoURL:        "https://github.com/rezakaramad/kubepave.git",
-				gitopsRepoBranch:     "main",
-				gitopsRepoBasePath:   "charts/gitops-tenant",
+				log:         logging.NewNopLogger(),
+				nextInsight: nil,
 			}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 

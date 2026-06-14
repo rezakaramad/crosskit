@@ -1,4 +1,5 @@
-package main
+// Package validate implements the business logic for validating XTenant resources.
+package validate
 
 import xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 

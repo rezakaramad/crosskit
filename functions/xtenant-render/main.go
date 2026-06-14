@@ -4,14 +4,12 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 
 	"github.com/crossplane/function-sdk-go"
 )
-
-const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
 // CLI of this Function.
 type CLI struct {
@@ -31,21 +29,8 @@ func (c *CLI) Run() error {
 	}
 
 	fn := &Function{
-		log: log,
-
-		exportRepository:   getEnv("EXPORT_REPOSITORY", "kubepave-tenants"),
-		exportRepoBranch:   getEnv("EXPORT_REPO_BRANCH", "main"),
-		exportRepoBasePath: getEnv("EXPORT_REPO_BASE_PATH", "tenants"),
-
-		crossplaneNamespace: discoverNamespace(),
-
-		baselineRepoURL:      getEnv("BASELINE_REPO_URL", "kubepave"),
-		baselineRepoBranch:   getEnv("BASELINE_REPO_BRANCH", "main"),
-		baselineRepoBasePath: getEnv("BASELINE_REPO_BASE_PATH", "charts/baseline-tenant"),
-
-		gitopsRepoURL:      getEnv("GITOPS_REPO_URL", "kubepave"),
-		gitopsRepoBranch:   getEnv("GITOPS_REPO_BRANCH", "main"),
-		gitopsRepoBasePath: getEnv("GITOPS_REPO_BASE_PATH", "charts/gitops-tenant"),
+		log:         log,
+		nextInsight: newNextInsightClient(),
 	}
 
 	return function.Serve(fn,
@@ -55,20 +40,26 @@ func (c *CLI) Run() error {
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
 }
 
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+// newNextInsightClient returns a configured Next-Insight client when the
+// NEXTINSIGHT_BASE_URL environment variable is set, or nil otherwise.
+// The token is read from NEXTINSIGHT_TOKEN.
+//
+// Mount the token as an env-var secret in your Deployment:
+//
+//	env:
+//	  - name: NEXTINSIGHT_BASE_URL
+//	    value: "https://app.next-insight.com"
+//	  - name: NEXTINSIGHT_TOKEN
+//	    valueFrom:
+//	      secretKeyRef:
+//	        name: nextinsight-credentials
+//	        key: token
+func newNextInsightClient() nextinsight.Client {
+	baseURL := os.Getenv("NEXTINSIGHT_BASE_URL")
+	if baseURL == "" {
+		return nil
 	}
-	return fallback
-}
-
-func discoverNamespace() string {
-	if data, err := os.ReadFile(serviceAccountNamespacePath); err == nil {
-		if namespace := strings.TrimSpace(string(data)); namespace != "" {
-			return namespace
-		}
-	}
-	return getEnv("CROSSPLANE_NAMESPACE", defaultCrossplaneNamespace)
+	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
 }
 
 func main() {
