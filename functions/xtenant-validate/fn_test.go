@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	validate "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/internal"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -13,7 +14,6 @@ import (
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
-	validate "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/internal"
 )
 
 type fakeDNSClient struct{}
