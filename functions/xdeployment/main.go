@@ -1,12 +1,9 @@
 // Package main implements a Crossplane Composition Function that renders
-// ArgoCD Application resources and a GitHub RepositoryFile for each approved XTenant.
+// a Kubernetes Deployment enriched with Next-Insight application metadata labels.
 package main
 
 import (
-	"os"
-
 	"github.com/alecthomas/kong"
-	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 
 	"github.com/crossplane/function-sdk-go"
 )
@@ -28,38 +25,11 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	fn := &Function{
-		log:         log,
-		nextInsight: newNextInsightClient(),
-	}
-
-	return function.Serve(fn,
+	return function.Serve(newFunction(log),
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
-}
-
-// newNextInsightClient returns a configured Next-Insight client when the
-// NEXTINSIGHT_BASE_URL environment variable is set, or nil otherwise.
-// The token is read from NEXTINSIGHT_TOKEN.
-//
-// Mount the token as an env-var secret in your Deployment:
-//
-//	env:
-//	  - name: NEXTINSIGHT_BASE_URL
-//	    value: "https://app.next-insight.com"
-//	  - name: NEXTINSIGHT_TOKEN
-//	    valueFrom:
-//	      secretKeyRef:
-//	        name: nextinsight-credentials
-//	        key: token
-func newNextInsightClient() nextinsight.Client {
-	baseURL := os.Getenv("NEXTINSIGHT_BASE_URL")
-	if baseURL == "" {
-		return nil
-	}
-	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
 }
 
 func main() {

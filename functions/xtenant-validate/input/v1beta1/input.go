@@ -19,17 +19,16 @@ type Input struct {
 
 	// DNS configures DNS validation behavior.
 	DNS DNSInput `json:"dns"`
-
-	// Clusters lists the workload clusters and prefixes the platform exposes.
-	// +kubebuilder:validation:MinItems=1
-	Clusters []ClusterInput `json:"clusters"`
 }
 
 // DNSInput configures DNS validation behavior.
 type DNSInput struct {
-	// BaseDomain is the DNS suffix used when validating tenant hostnames.
+	// ReferenceEnvironmentDomain is the domain of the single representative environment
+	// used to check DNS availability. Tenant names are unique across all environments,
+	// so availability in one implies availability in all.
+	// Example: "dev.rezakara.demo"
 	// +kubebuilder:validation:MinLength=1
-	BaseDomain string `json:"baseDomain"`
+	ReferenceEnvironmentDomain string `json:"referenceEnvironmentDomain"`
 
 	// Provider selects which DNS backend to use for availability checks.
 	// +kubebuilder:validation:Enum=powerdns;clouddns
@@ -67,15 +66,4 @@ type SecretKeyRef struct {
 	// Key is the data key within the Secret whose value is the API key.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
-}
-
-// ClusterInput identifies a workload cluster and its environment prefix.
-type ClusterInput struct {
-	// Name is the logical workload cluster name.
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-
-	// Prefix is the DNS/environment prefix associated with the cluster.
-	// +kubebuilder:validation:MinLength=1
-	Prefix string `json:"prefix"`
 }

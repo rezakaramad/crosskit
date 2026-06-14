@@ -1,4 +1,4 @@
-package main
+package validate
 
 import (
 	"context"
@@ -19,16 +19,15 @@ type ValidationError struct {
 
 // Deps contains external dependencies required for validation.
 type Deps struct {
-	Kube             ctrlclient.Client
-	DNS              DNSClient
-	BaseDomain       string
-	WorkloadClusters []xtenant.Cluster
+	Kube                       ctrlclient.Client
+	DNS                        DNSClient
+	ReferenceEnvironmentDomain string
 	// NextInsight is optional; when non-nil, TeamID is verified against the API.
 	NextInsight nextinsight.Client
 }
 
 // Validate performs full validation of an XTenant.
-// It checks DNS availability for every workload cluster the tenant targets,
+// It checks DNS availability using the configured referenceEnvironmentDomain,
 // and when a TeamID is set, verifies it exists in Next-Insight.
 func Validate(ctx context.Context, t xtenant.XTenant, d Deps) *ValidationError {
 	if d.NextInsight != nil && t.Spec.TeamID != "" {
@@ -41,26 +40,22 @@ func Validate(ctx context.Context, t xtenant.XTenant, d Deps) *ValidationError {
 		}
 	}
 
-	dnsName := t.Spec.DNSName
+	fqdn := fmt.Sprintf("*.%s.%s.", t.Spec.DNSName, strings.TrimSuffix(d.ReferenceEnvironmentDomain, "."))
 
-	for _, cluster := range d.WorkloadClusters {
-		fqdn := BuildFQDN(dnsName, cluster.Prefix, d.BaseDomain)
-
-		res, err := d.DNS.CheckDNSAvailable(ctx, fqdn)
-		if err != nil {
-			return &ValidationError{
-				Reason:    "DnsCheckFailed",
-				Message:   err.Error(),
-				Retryable: isRetryable(err),
-			}
+	res, err := d.DNS.CheckDNSAvailable(ctx, fqdn)
+	if err != nil {
+		return &ValidationError{
+			Reason:    "DnsCheckFailed",
+			Message:   err.Error(),
+			Retryable: isRetryable(err),
 		}
+	}
 
-		if !res.Available {
-			return &ValidationError{
-				Reason:    "DnsNameTaken",
-				Message:   fmt.Sprintf("dns %q already in use", fqdn),
-				Retryable: false,
-			}
+	if !res.Available {
+		return &ValidationError{
+			Reason:    "DnsNameTaken",
+			Message:   fmt.Sprintf("dns %q already in use", fqdn),
+			Retryable: false,
 		}
 	}
 

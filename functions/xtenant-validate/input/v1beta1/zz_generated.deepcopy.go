@@ -16,11 +16,6 @@ func (in *Input) DeepCopyInto(out *Input) {
 		ref := *in.DNS.CredentialsSecretRef
 		out.DNS.CredentialsSecretRef = &ref
 	}
-	if in.Clusters != nil {
-		in, out := &in.Clusters, &out.Clusters
-		*out = make([]ClusterInput, len(*in))
-		copy(*out, *in)
-	}
 }
 
 // DeepCopy creates a deep copy of Input.

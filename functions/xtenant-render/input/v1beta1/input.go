@@ -48,6 +48,21 @@ type GithubInput struct {
 	CommitEmail string `json:"commitEmail,omitempty"`
 }
 
+// WithDefaults returns a copy of g with any unset fields filled in with
+// their default values.
+func (g GithubInput) WithDefaults() GithubInput {
+	if g.ProviderConfigName == "" {
+		g.ProviderConfigName = "github-rezakaramad"
+	}
+	if g.CommitAuthor == "" {
+		g.CommitAuthor = "Crossplane"
+	}
+	if g.CommitEmail == "" {
+		g.CommitEmail = "crossplane@rezakara.demo"
+	}
+	return g
+}
+
 // AzureInput configures how Entra principals are provisioned.
 type AzureInput struct {
 	// PrincipalType selects whether the function creates Entra groups or users.

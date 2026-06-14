@@ -1,14 +1,18 @@
-package main
+package render
 
 import (
 	"fmt"
 
-	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
+	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	commonv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
+	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
+	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
+	usersv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/users/v1beta1"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -51,26 +55,41 @@ func userResourceNames(t TenantSpec, binding inputv1beta1.BindingInput) (secretN
 }
 
 func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *composed.Unstructured {
-	group := composed.New()
-	group.SetAPIVersion("groups.azuread.m.upbound.io/v1beta1")
-	group.SetKind("Group")
-	group.SetName(fmt.Sprintf("%s-%s-%s", t.GetName(), binding.Name, binding.EnvironmentPrefix))
-	group.SetNamespace(defaultCrossplaneNamespace)
-	group.SetLabels(map[string]string{
-		"app.kubernetes.io/managed-by":  managedByCrossplane,
-		"platform.rezakara.demo/tenant": t.GetName(),
-		"platform.rezakara.demo/role":   binding.Name,
-		"platform.rezakara.demo/prefix": binding.EnvironmentPrefix,
-	})
-	_ = group.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s-%s-%s",
+	displayName := fmt.Sprintf("%s-%s-%s",
 		t.Spec.DisplayName,
 		cases.Title(language.English).String(binding.Name),
 		cases.Title(language.English).String(binding.EnvironmentPrefix),
-	))
-	_ = group.SetValue("spec.forProvider.securityEnabled", true)
-	_ = group.SetValue("spec.providerConfigRef.name", "azuread")
-	_ = group.SetValue("spec.providerConfigRef.kind", "ProviderConfig")
-	return group
+	)
+	securityEnabled := true
+
+	group := &groupsv1beta1.Group{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: groupsv1beta1.CRDGroupVersion.String(),
+			Kind:       groupsv1beta1.Group_Kind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s-%s", t.GetName(), binding.Name, binding.EnvironmentPrefix),
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by":  managedByCrossplane,
+				"platform.rezakara.demo/tenant": t.GetName(),
+				"platform.rezakara.demo/role":   binding.Name,
+				"platform.rezakara.demo/prefix": binding.EnvironmentPrefix,
+			},
+		},
+		Spec: groupsv1beta1.GroupSpec{
+			ForProvider: groupsv1beta1.GroupParameters{
+				DisplayName:     &displayName,
+				SecurityEnabled: &securityEnabled,
+			},
+			ManagedResourceSpec: commonv2.ManagedResourceSpec{
+				ProviderConfigReference: &commonv1.ProviderConfigReference{
+					Name: "azuread",
+					Kind: "ProviderConfig",
+				},
+			},
+		},
+	}
+	return toComposed(group)
 }
 
 func buildPrincipalUserPassword(_ inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
@@ -78,7 +97,6 @@ func buildPrincipalUserPassword(_ inputv1beta1.BindingInput, secretName string) 
 	password.SetAPIVersion("generators.external-secrets.io/v1alpha1")
 	password.SetKind("Password")
 	password.SetName(secretName)
-	password.SetNamespace(defaultCrossplaneNamespace)
 	_ = password.SetValue("spec.length", int64(32))
 	return password
 }
@@ -88,7 +106,6 @@ func buildPrincipalUserPasswordSecret(_ inputv1beta1.BindingInput, secretName st
 	externalSecret.SetAPIVersion("external-secrets.io/v1")
 	externalSecret.SetKind("ExternalSecret")
 	externalSecret.SetName(secretName)
-	externalSecret.SetNamespace(defaultCrossplaneNamespace)
 	_ = externalSecret.SetValue("spec.target.name", secretName)
 	_ = externalSecret.SetValue("spec.dataFrom", []any{
 		map[string]any{
@@ -110,30 +127,50 @@ func buildPrincipalUser(t TenantSpec, binding inputv1beta1.BindingInput, azure i
 		domain = defaultUserPrincipalDomain
 	}
 
-	user := composed.New()
-	user.SetAPIVersion("users.azuread.m.upbound.io/v1beta1")
-	user.SetKind("User")
-	user.SetName(principalName)
-	user.SetNamespace(defaultCrossplaneNamespace)
-	user.SetLabels(map[string]string{
-		"app.kubernetes.io/managed-by":          managedByCrossplane,
-		"platform.rezakara.demo/tenant":         t.GetName(),
-		"platform.rezakara.demo/role":           binding.Name,
-		"platform.rezakara.demo/principal-type": principalTypeUser,
-	})
-	_ = user.SetValue("spec.forProvider.userPrincipalName", fmt.Sprintf("%s@%s", principalName, domain))
-	_ = user.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s %s",
+	upn := fmt.Sprintf("%s@%s", principalName, domain)
+	displayName := fmt.Sprintf("%s %s",
 		t.Spec.DisplayName,
 		cases.Title(language.English).String(binding.Name),
-	))
-	_ = user.SetValue("spec.initProvider.passwordSecretRef.key", "password")
-	_ = user.SetValue("spec.initProvider.passwordSecretRef.name", secretName)
-	_ = user.SetValue("spec.providerConfigRef.name", "azuread")
-	_ = user.SetValue("spec.providerConfigRef.kind", "ProviderConfig")
-	return user
+	)
+
+	user := &usersv1beta1.User{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: usersv1beta1.CRDGroupVersion.String(),
+			Kind:       usersv1beta1.User_Kind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: principalName,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by":          managedByCrossplane,
+				"platform.rezakara.demo/tenant":         t.GetName(),
+				"platform.rezakara.demo/role":           binding.Name,
+				"platform.rezakara.demo/principal-type": principalTypeUser,
+			},
+		},
+		Spec: usersv1beta1.UserSpec{
+			ForProvider: usersv1beta1.UserParameters{
+				UserPrincipalName: &upn,
+				DisplayName:       &displayName,
+			},
+			InitProvider: usersv1beta1.UserInitParameters{
+				PasswordSecretRef: &commonv1.LocalSecretKeySelector{
+					LocalSecretReference: commonv1.LocalSecretReference{Name: secretName},
+					Key:                  "password",
+				},
+			},
+			ManagedResourceSpec: commonv2.ManagedResourceSpec{
+				ProviderConfigReference: &commonv1.ProviderConfigReference{
+					Name: "azuread",
+					Kind: "ProviderConfig",
+				},
+			},
+		},
+	}
+	return toComposed(user)
 }
 
-func buildPrincipalResources(t TenantSpec, binding inputv1beta1.BindingInput, azure inputv1beta1.AzureInput) map[resource.Name]*resource.DesiredComposed {
+// BuildPrincipalResources returns the desired composed resources for the tenant's Entra principal.
+func BuildPrincipalResources(t TenantSpec, binding inputv1beta1.BindingInput, azure inputv1beta1.AzureInput) map[resource.Name]*resource.DesiredComposed {
 	if !usesUserPrincipal(azure) {
 		return map[resource.Name]*resource.DesiredComposed{
 			principalResourceName(azure, binding): {Resource: buildPrincipalGroup(t, binding)},
@@ -148,7 +185,8 @@ func buildPrincipalResources(t TenantSpec, binding inputv1beta1.BindingInput, az
 	}
 }
 
-func resolveBindingPrincipalObjectID(observed map[resource.Name]resource.ObservedComposed, azure inputv1beta1.AzureInput, binding inputv1beta1.BindingInput) (string, bool) {
+// ResolveBindingPrincipalObjectID looks up the Entra object ID from the observed composed resource.
+func ResolveBindingPrincipalObjectID(observed map[resource.Name]resource.ObservedComposed, azure inputv1beta1.AzureInput, binding inputv1beta1.BindingInput) (string, bool) {
 	observedResource, ok := observed[principalResourceName(azure, binding)]
 	if !ok || observedResource.Resource == nil {
 		return "", false

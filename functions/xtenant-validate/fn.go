@@ -3,17 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/input/v1beta1"
+	validate "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/internal"
 	"github.com/rezakaramad/crossplane-toolkit/modules/nextinsight"
 	xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -23,14 +25,52 @@ import (
 	"github.com/crossplane/function-sdk-go/response"
 )
 
+const (
+	conditionValid    = "Valid"
+	conditionApproved = "Approved"
+	conditionReady    = "Ready"
+)
+
 // Function is the gRPC server that Crossplane calls to run validation.
 type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 
 	log         logging.Logger
 	kube        ctrlclient.Client
-	dns         DNSClient
+	dns         validate.DNSClient
 	nextInsight nextinsight.Client
+}
+
+// newFunction builds the Function with all external clients initialised.
+func newFunction(log logging.Logger) (*Function, error) {
+	cfg, err := ctrlconfig.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
+	kubeClient, err := ctrlclient.New(cfg, ctrlclient.Options{Scheme: scheme})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Function{
+		log:         log,
+		kube:        kubeClient,
+		nextInsight: newNextInsightClient(),
+	}, nil
+}
+
+// newNextInsightClient returns a configured Next-Insight client when
+// NEXTINSIGHT_BASE_URL is set, or nil to skip Next-Insight validation.
+func newNextInsightClient() nextinsight.Client {
+	baseURL := os.Getenv("NEXTINSIGHT_BASE_URL")
+	if baseURL == "" {
+		return nil
+	}
+	return nextinsight.New(baseURL, os.Getenv("NEXTINSIGHT_TOKEN"))
 }
 
 func (f *Function) RunFunction(
@@ -69,34 +109,20 @@ func (f *Function) RunFunction(
 	if err := request.GetInput(req, &input); err != nil {
 		return fail(rsp, xr, err, "cannot parse function input")
 	}
-	if input.DNS.BaseDomain == "" {
-		return fail(rsp, xr, xperrors.New("dns.baseDomain is required"), "cannot parse function input")
-	}
-	if len(input.Clusters) == 0 {
-		return fail(rsp, xr, xperrors.New("clusters is required"), "cannot parse function input")
-	}
-
-	workloadClusters := make([]xtenant.Cluster, 0, len(input.Clusters))
-	for _, cluster := range input.Clusters {
-		if cluster.Name == "" || cluster.Prefix == "" {
-			return fail(rsp, xr, xperrors.New("clusters entries require name and prefix"), "cannot parse function input")
-		}
-		workloadClusters = append(workloadClusters, xtenant.Cluster{
-			Name:   cluster.Name,
-			Prefix: cluster.Prefix,
-		})
+	if input.DNS.ReferenceEnvironmentDomain == "" {
+		return fail(rsp, xr, xperrors.New("dns.referenceEnvironmentDomain is required"), "cannot parse function input")
 	}
 
 	// ---------------------------------------------------------------------
 	// 4. Approved tenants already passed validation before approval was set.
 	// Skip external re-validation on subsequent reconciles.
 	// ---------------------------------------------------------------------
-	if IsApproved(tenantRequest) {
-		response.ConditionTrue(rsp, "Valid", "ValidationPassed").TargetComposite()
-		response.ConditionTrue(rsp, "Approved", "Approved").TargetComposite()
+	if validate.IsApproved(tenantRequest) {
+		response.ConditionTrue(rsp, conditionValid, "ValidationPassed").TargetComposite()
+		response.ConditionTrue(rsp, conditionApproved, "Approved").TargetComposite()
 
-		SetPhase(xr, PhaseProvisioning)
-		response.ConditionTrue(rsp, "Ready", "Provisioning").
+		validate.SetPhase(xr, xtenant.PhaseProvisioning)
+		response.ConditionTrue(rsp, conditionReady, "Provisioning").
 			WithMessage("XTenant approved, provisioning in progress").
 			TargetComposite()
 
@@ -105,39 +131,38 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 4. Resolve DNS client from input (or use injected override for tests)
+	// 5. Resolve DNS client from input (or use injected override for tests)
 	// ---------------------------------------------------------------------
 	dnsClient := f.dns
 	if dnsClient == nil {
-		dnsClient, err = buildDNSClient(ctx, input.DNS, f.kube)
+		dnsClient, err = validate.BuildDNSClient(ctx, input.DNS, f.kube)
 		if err != nil {
 			return fail(rsp, xr, err, "cannot build dns client")
 		}
 	}
 
 	// ---------------------------------------------------------------------
-	// 5. Validation
+	// 6. Validation
 	// ---------------------------------------------------------------------
-	SetPhase(xr, PhaseValidating)
+	validate.SetPhase(xr, xtenant.PhaseValidating)
 
-	if verr := Validate(ctx, tenantRequest, Deps{
-		Kube:             f.kube,
-		DNS:              dnsClient,
-		BaseDomain:       input.DNS.BaseDomain,
-		WorkloadClusters: workloadClusters,
-		NextInsight:      f.nextInsight,
+	if verr := validate.Validate(ctx, tenantRequest, validate.Deps{
+		Kube:                       f.kube,
+		DNS:                        dnsClient,
+		ReferenceEnvironmentDomain: input.DNS.ReferenceEnvironmentDomain,
+		NextInsight:                f.nextInsight,
 	}); verr != nil {
 		if verr.Retryable {
-			SetPhase(xr, PhaseValidating)
+			validate.SetPhase(xr, xtenant.PhaseValidating)
 		} else {
-			SetPhase(xr, PhaseFailed)
+			validate.SetPhase(xr, xtenant.PhaseFailed)
 		}
 
-		response.ConditionFalse(rsp, "Valid", verr.Reason).
+		response.ConditionFalse(rsp, conditionValid, verr.Reason).
 			WithMessage(verr.Message).
 			TargetComposite()
 
-		response.ConditionFalse(rsp, "Ready", "ValidationFailed").
+		response.ConditionFalse(rsp, conditionReady, "ValidationFailed").
 			WithMessage("XTenant is not valid").
 			TargetComposite()
 
@@ -145,29 +170,29 @@ func (f *Function) RunFunction(
 		return done(rsp, xr)
 	}
 
-	response.ConditionTrue(rsp, "Valid", "ValidationPassed").TargetComposite()
+	response.ConditionTrue(rsp, conditionValid, "ValidationPassed").TargetComposite()
 
 	// ---------------------------------------------------------------------
-	// 6. Approval gate
+	// 7. Approval gate
 	// ---------------------------------------------------------------------
-	if !IsApproved(tenantRequest) {
-		SetPhase(xr, PhasePendingApproval)
+	if !validate.IsApproved(tenantRequest) {
+		validate.SetPhase(xr, xtenant.PhasePendingApproval)
 
-		response.ConditionFalse(rsp, "Approved", "WaitingForApproval").TargetComposite()
-		response.ConditionFalse(rsp, "Ready", "WaitingForApproval").TargetComposite()
+		response.ConditionFalse(rsp, conditionApproved, "WaitingForApproval").TargetComposite()
+		response.ConditionFalse(rsp, conditionReady, "WaitingForApproval").TargetComposite()
 
 		log.Info("Waiting for approval")
 		return done(rsp, xr)
 	}
 
-	response.ConditionTrue(rsp, "Approved", "Approved").TargetComposite()
+	response.ConditionTrue(rsp, conditionApproved, "Approved").TargetComposite()
 
 	// ---------------------------------------------------------------------
-	// 7. Approved — hand off to the renderer pipeline step
+	// 8. Approved — hand off to the renderer pipeline step
 	// ---------------------------------------------------------------------
-	SetPhase(xr, PhaseProvisioning)
+	validate.SetPhase(xr, xtenant.PhaseProvisioning)
 
-	response.ConditionTrue(rsp, "Ready", "Provisioning").
+	response.ConditionTrue(rsp, conditionReady, "Provisioning").
 		WithMessage("XTenant approved, provisioning in progress").
 		TargetComposite()
 
@@ -202,13 +227,25 @@ func fromObservedXR(xr *resource.Composite) (xtenant.XTenant, error) {
 // Response helpers
 // ---------------------------------------------------------------------
 
+// fatal marks the function response as fatally failed due to an internal error.
+// It sets a FunctionSuccess=False condition with reason InternalError on both
+// the composite resource and claim, then records the error as fatal to stop
+// the composition pipeline.
 func fatal(rsp *fnv1.RunFunctionResponse, err error, msg string) (*fnv1.RunFunctionResponse, error) {
-	response.Fatal(rsp, xperrors.Wrap(err, msg))
+	if err != nil {
+		err = xperrors.Wrap(err, msg)
+	} else {
+		err = xperrors.New(msg)
+	}
+	response.ConditionFalse(rsp, "FunctionSuccess", "InternalError").
+		WithMessage(err.Error()).
+		TargetCompositeAndClaim()
+	response.Fatal(rsp, err)
 	return rsp, nil
 }
 
 func fail(rsp *fnv1.RunFunctionResponse, xr *resource.Composite, err error, msg string) (*fnv1.RunFunctionResponse, error) {
-	SetPhase(xr, PhaseFailed)
+	validate.SetPhase(xr, xtenant.PhaseFailed)
 	response.Fatal(rsp, xperrors.Wrap(err, msg))
 	return done(rsp, xr)
 }
@@ -217,58 +254,4 @@ func done(rsp *fnv1.RunFunctionResponse, xr *resource.Composite) (*fnv1.RunFunct
 	xr.Resource.SetManagedFields(nil)
 	_ = response.SetDesiredCompositeResource(rsp, xr)
 	return rsp, nil
-}
-
-// buildDNSClient constructs the right DNSClient implementation based on the
-// provider field in the function input.
-//
-// It is called on every RunFunction invocation, so any Secret rotation is
-// picked up automatically without restarting the pod.
-func buildDNSClient(ctx context.Context, cfg inputv1beta1.DNSInput, kube ctrlclient.Client) (DNSClient, error) {
-	switch cfg.Provider {
-	case "clouddns":
-		if cfg.GCPProject == "" {
-			return nil, fmt.Errorf("dns.gcpProject is required when provider is clouddns")
-		}
-		// Workload Identity supplies credentials automatically — no API key needed.
-		return NewGCPDNSClient(ctx, cfg.GCPProject)
-
-	case "powerdns", "":
-		if cfg.APIURL == "" {
-			return nil, fmt.Errorf("dns.apiURL is required when provider is powerdns")
-		}
-		if cfg.CredentialsSecretRef == nil {
-			return nil, fmt.Errorf("dns.credentialsSecretRef is required when provider is powerdns")
-		}
-		apiKey, err := readSecretKey(ctx, kube, cfg.CredentialsSecretRef)
-		if err != nil {
-			return nil, fmt.Errorf("cannot read powerdns credentials: %w", err)
-		}
-		return NewPowerDNSClient(
-			cfg.APIURL,
-			apiKey,
-			&http.Client{Timeout: 5 * time.Second},
-		), nil
-
-	default:
-		return nil, fmt.Errorf("unknown dns.provider %q: supported values are powerdns, clouddns", cfg.Provider)
-	}
-}
-
-// readSecretKey reads a single key from a Kubernetes Secret.
-// Because this is called on every reconcile, rotation is picked up
-// within one reconcile loop after the Secret is updated.
-func readSecretKey(ctx context.Context, kube ctrlclient.Client, ref *inputv1beta1.SecretKeyRef) (string, error) {
-	secret := &corev1.Secret{}
-	if err := kube.Get(ctx, types.NamespacedName{
-		Namespace: ref.Namespace,
-		Name:      ref.Name,
-	}, secret); err != nil {
-		return "", fmt.Errorf("get secret %s/%s: %w", ref.Namespace, ref.Name, err)
-	}
-	val, ok := secret.Data[ref.Key]
-	if !ok {
-		return "", fmt.Errorf("key %q not found in secret %s/%s", ref.Key, ref.Namespace, ref.Name)
-	}
-	return strings.TrimSpace(string(val)), nil
 }

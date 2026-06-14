@@ -1,17 +1,11 @@
-package main
+package validate
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/rezakaramad/crossplane-toolkit/modules/gcpdns"
 	"github.com/rezakaramad/crossplane-toolkit/modules/pdns"
 )
-
-// NewPowerDNSClient creates a DNSClient backed by the PowerDNS HTTP API.
-func NewPowerDNSClient(baseURL, apiKey string, httpClient *http.Client) DNSClient {
-	return &pdnsAdapter{pdns.New(baseURL, apiKey, httpClient)}
-}
 
 // pdnsAdapter bridges pdns.Client to the local DNSClient interface.
 type pdnsAdapter struct {
@@ -26,5 +20,7 @@ func (a *pdnsAdapter) CheckDNSAvailable(ctx context.Context, fqdn string) (DNSAv
 	return DNSAvailabilityResult{Available: res.Available, Reason: res.Reason}, nil
 }
 
-// BuildFQDN delegates to the gcpdns module for callers in this package.
-func BuildFQDN(name, prefix, base string) string { return gcpdns.BuildFQDN(name, prefix, base) }
+// NewPowerDNSClient creates a DNSClient backed by the PowerDNS HTTP API.
+func NewPowerDNSClient(baseURL, apiKey string, httpClient *http.Client) DNSClient {
+	return &pdnsAdapter{pdns.New(baseURL, apiKey, httpClient)}
+}

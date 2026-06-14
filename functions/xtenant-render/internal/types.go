@@ -1,12 +1,17 @@
-package main
+package render
 
 import xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 
 const (
-	defaultCrossplaneNamespace = "crossplane"
-	managedByCrossplane        = "crossplane"
-	metadataNameKey            = "name"
+	managedByCrossplane = "crossplane"
+	metadataNameKey     = "name"
 )
+
+// Cluster identifies a workload cluster and its environment prefix.
+type Cluster struct {
+	Name   string
+	Prefix string
+}
 
 // TenantSpec is the renderer's internal view of an XTenant.
 // It embeds xtenant.XTenant so all XR fields are accessible directly,

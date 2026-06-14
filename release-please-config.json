@@ -33,6 +33,13 @@
       "bump-minor-pre-major": true,
       "initial-version": "0.0.1"
     },
+    "types/xdeployment": {
+      "component": "types/xdeployment",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
     "cmd/gen-xrd": {
       "component": "cmd/gen-xrd",
       "release-type": "go",
@@ -49,6 +56,13 @@
     },
     "functions/xtenant-render": {
       "component": "functions/xtenant-render",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
+    "functions/xdeployment": {
+      "component": "functions/xdeployment",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,

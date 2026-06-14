@@ -1,4 +1,4 @@
-package main
+package validate
 
 import xtenant "github.com/rezakaramad/crossplane-toolkit/types/xtenant"
 

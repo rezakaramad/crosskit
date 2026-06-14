@@ -13,12 +13,13 @@ import (
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
+	validate "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-validate/internal"
 )
 
 type fakeDNSClient struct{}
 
-func (fakeDNSClient) CheckDNSAvailable(_ context.Context, _ string) (DNSAvailabilityResult, error) {
-	return DNSAvailabilityResult{Available: true}, nil
+func (fakeDNSClient) CheckDNSAvailable(_ context.Context, _ string) (validate.DNSAvailabilityResult, error) {
+	return validate.DNSAvailabilityResult{Available: true}, nil
 }
 
 func TestRunFunction(t *testing.T) {
@@ -66,7 +67,7 @@ func TestRunFunction(t *testing.T) {
 					Results: []*fnv1.Result{
 						{
 							Severity: fnv1.Severity_SEVERITY_FATAL,
-							Message:  "cannot parse function input: dns.baseDomain is required",
+							Message:  "cannot parse function input: dns.referenceEnvironmentDomain is required",
 							Target:   fnv1.Target_TARGET_COMPOSITE.Enum(),
 						},
 					},
@@ -94,10 +95,7 @@ func TestRunFunction(t *testing.T) {
 					Input: resource.MustStructJSON(`{
 						"apiVersion": "platform.rezakara.demo/v1beta1",
 						"kind": "Input",
-						"dns": {"baseDomain": "rezakara.demo"},
-						"clusters": [
-							{"name": "minikube-workload", "prefix": "wl"}
-						]
+						"dns": {"referenceEnvironmentDomain": "dev.rezakara.demo"}
 					}`),
 				},
 			},
@@ -148,10 +146,7 @@ func TestRunFunction(t *testing.T) {
 					Input: resource.MustStructJSON(`{
 						"apiVersion": "platform.rezakara.demo/v1beta1",
 						"kind": "Input",
-						"dns": {"baseDomain": "rezakara.demo"},
-						"clusters": [
-							{"name": "minikube-workload", "prefix": "wl"}
-						]
+						"dns": {"referenceEnvironmentDomain": "dev.rezakara.demo"}
 					}`),
 				},
 			},

@@ -1,10 +1,12 @@
-package main
+package render
 
 import (
 	"fmt"
 	"sort"
 
+	argocdtypes "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/argocd"
 	inputv1beta1 "github.com/rezakaramad/crossplane-toolkit/functions/xtenant-render/input/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/crossplane/function-sdk-go/resource/composed"
@@ -65,22 +67,14 @@ func renderedRoles(bindings []ResolvedBinding) ([]map[string]any, error) {
 	return out, nil
 }
 
-func buildGitopsApplication(
+// BuildGitopsApplication creates the ArgoCD gitops Application for a tenant.
+func BuildGitopsApplication(
 	t TenantSpec,
 	bindings []ResolvedBinding,
 	azure inputv1beta1.AzureInput,
 	repo, branch, basePath string,
 ) (*composed.Unstructured, error) {
 	name := fmt.Sprintf("gitops-%s", t.GetName())
-
-	app := composed.New()
-	app.SetAPIVersion("argoproj.io/v1alpha1")
-	app.SetKind("Application")
-	app.SetName(name)
-	app.SetNamespace("argocd")
-	_ = app.SetValue("metadata.namespace", "argocd")
-	_ = app.SetValue("metadata.finalizers", []string{"resources-finalizer.argocd.argoproj.io"})
-	app.SetLabels(commonLabels(t))
 
 	roles, err := renderedRoles(bindings)
 	if err != nil {
@@ -122,34 +116,42 @@ func buildGitopsApplication(
 		return nil, fmt.Errorf("cannot marshal gitops values: %w", err)
 	}
 
-	spec := map[string]any{
-		"project": "default",
-		"source": map[string]any{
-			"repoURL":        repo,
-			"targetRevision": branch,
-			"path":           basePath,
-			"helm": map[string]any{
-				"values": string(valuesYaml),
-			},
+	app := &argocdtypes.Application{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: argocdtypes.GroupVersion.String(),
+			Kind:       argocdtypes.ApplicationKind,
 		},
-		"destination": map[string]any{
-			metadataNameKey: "in-cluster",
-			"namespace":     fmt.Sprintf("gitops-%s", t.GetName()),
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       name,
+			Namespace:  "argocd",
+			Labels:     commonLabels(t),
+			Finalizers: []string{"resources-finalizer.argocd.argoproj.io"},
+		},
+		Spec: argocdtypes.ApplicationSpec{
+			Project: "default",
+			Source: argocdtypes.ApplicationSource{
+				RepoURL:        repo,
+				TargetRevision: branch,
+				Path:           basePath,
+				Helm: &argocdtypes.ApplicationSourceHelm{
+					Values: string(valuesYaml),
+				},
+			},
+			Destination: argocdtypes.ApplicationDestination{
+				Name:      "in-cluster",
+				Namespace: fmt.Sprintf("gitops-%s", t.GetName()),
+			},
 		},
 	}
 
 	if t.Spec.ArgoCD.SyncPolicy.AutomatedSync {
-		spec["syncPolicy"] = map[string]any{
-			"automated": map[string]any{
-				"prune":    t.Spec.ArgoCD.SyncPolicy.Prune,
-				"selfHeal": t.Spec.ArgoCD.SyncPolicy.SelfHeal,
+		app.Spec.SyncPolicy = &argocdtypes.SyncPolicy{
+			Automated: &argocdtypes.SyncPolicyAutomated{
+				Prune:    t.Spec.ArgoCD.SyncPolicy.Prune,
+				SelfHeal: t.Spec.ArgoCD.SyncPolicy.SelfHeal,
 			},
 		}
 	}
 
-	if err := app.SetValue("spec", spec); err != nil {
-		return nil, fmt.Errorf("cannot build gitops application %s: %w", name, err)
-	}
-
-	return app, nil
+	return toComposed(app), nil
 }

@@ -18,12 +18,6 @@ const (
 	PhaseFailed          Phase = "Failed"
 )
 
-// Cluster identifies a workload cluster and its environment prefix.
-type Cluster struct {
-	Name   string
-	Prefix string
-}
-
 // XTenant is the strongly-typed representation of the Tenant Composite Resource.
 //
 // +kubebuilder:object:root=true
