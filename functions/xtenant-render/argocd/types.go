@@ -17,7 +17,7 @@ import (
 // ApplicationKind is the Kubernetes Kind name for ArgoCD Application resources.
 const ApplicationKind = "Application"
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals // SchemeBuilder and AddToScheme are required globals for Kubernetes scheme registration
 var (
 	// GroupVersion is the group/version for ArgoCD application resources.
 	GroupVersion = schema.GroupVersion{Group: "argoproj.io", Version: "v1alpha1"}
