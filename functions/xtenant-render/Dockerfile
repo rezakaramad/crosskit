@@ -24,8 +24,8 @@ ENV CGO_ENABLED=0
 RUN --mount=target=. \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=secret,id=netrc,target=/root/.netrc \
-    TOKEN=$(awk '/password/{print $2}' /root/.netrc) \
-    && git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/" \
+    TOKEN=$$(awk '/password/{print $$2}' /root/.netrc) \
+    && git config --global url."https://x-access-token:$${TOKEN}@github.com/".insteadOf "https://github.com/" \
     && GOPRIVATE=github.com/rezakaramad/* go mod download
 
 # The TARGETOS and TARGETARCH args are set by docker. We set GOOS and GOARCH to
