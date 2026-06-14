@@ -4,11 +4,6 @@ package main
 
 import (
 	"github.com/alecthomas/kong"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/crossplane/function-sdk-go"
 )
@@ -30,25 +25,9 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	// Build a Kubernetes client so validators can query cluster state if needed.
-	cfg, err := ctrlconfig.GetConfig()
+	fn, err := newFunction(log)
 	if err != nil {
 		return err
-	}
-
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	kubeClient, err := ctrlclient.New(cfg, ctrlclient.Options{Scheme: scheme})
-	if err != nil {
-		return err
-	}
-
-	fn := &Function{
-		log:  log,
-		kube: kubeClient,
-		// dns is intentionally nil — buildDNSClient selects the provider at
-		// request time using input.DNS.provider from the Composition step config.
 	}
 
 	return function.Serve(fn,

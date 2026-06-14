@@ -14,6 +14,7 @@ func (in *Input) DeepCopyInto(out *Input) {
 	out.Github = in.Github
 	out.Azure = in.Azure
 	in.Tenant.DeepCopyInto(&out.Tenant)
+	out.NextInsight = in.NextInsight
 }
 
 // DeepCopy creates a deep copy of Input.
@@ -32,6 +33,21 @@ func (in *Input) DeepCopyObject() runtime.Object {
 		return c
 	}
 	return nil
+}
+
+// DeepCopyInto copies all properties of this object into another NextInsightInput object.
+func (in *NextInsightInput) DeepCopyInto(out *NextInsightInput) {
+	*out = *in
+}
+
+// DeepCopy creates a deep copy of NextInsightInput.
+func (in *NextInsightInput) DeepCopy() *NextInsightInput {
+	if in == nil {
+		return nil
+	}
+	out := new(NextInsightInput)
+	in.DeepCopyInto(out)
+	return out
 }
 
 // DeepCopyInto copies all properties of this object into another TenantInput object.

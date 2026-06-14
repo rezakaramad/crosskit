@@ -12,8 +12,29 @@
       "bump-minor-pre-major": true,
       "initial-version": "0.0.1"
     },
+    "modules/gcpdns": {
+      "component": "modules/gcpdns",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
+    "modules/pdns": {
+      "component": "modules/pdns",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
     "types/xtenant": {
       "component": "types/xtenant",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
+    "types/xdeployment": {
+      "component": "types/xdeployment",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
@@ -35,6 +56,20 @@
     },
     "functions/xtenant-render": {
       "component": "functions/xtenant-render",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
+    "functions/xdeployment": {
+      "component": "functions/xdeployment",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    },
+    "modules/nextinsight": {
+      "component": "modules/nextinsight",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,

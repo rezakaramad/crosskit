@@ -1,18 +1,6 @@
 name: Build and publish Crossplane function packages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "functions/**"
-      - "!functions/**/*.md"
-    tags:
-      - "functions/xtenant-validate/v*"
-      - "functions/xtenant-render/v*"
-  pull_request:
-    paths:
-      - "functions/**"
-      - "!functions/**/*.md"
   workflow_dispatch:
 
 env:
@@ -20,66 +8,13 @@ env:
   FUNCTIONS_DIR: functions
   GO_VERSION: "1.26"
   GOLANGCI_VERSION: "v2.12.2"
+  CROSSPLANE_CLI_VERSION: "v2.3.1"
 
 concurrency:
   group: crossplane-functions-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: false
-
-      - name: Check go mod tidy (xtenant-validate)
-        working-directory: functions/xtenant-validate
-        run: go mod tidy && git diff --exit-code go.mod go.sum
-
-      - name: Check go mod tidy (xtenant-render)
-        working-directory: functions/xtenant-render
-        run: go mod tidy && git diff --exit-code go.mod go.sum
-
-      - name: Lint (xtenant-validate)
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: ${{ env.GOLANGCI_VERSION }}
-          working-directory: functions/xtenant-validate
-          args: --config ../../.golangci.yml
-
-      - name: Lint (xtenant-render)
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: ${{ env.GOLANGCI_VERSION }}
-          working-directory: functions/xtenant-render
-          args: --config ../../.golangci.yml
-
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Run unit tests (xtenant-validate)
-        working-directory: functions/xtenant-validate
-        run: go test -v -cover ./...
-
-      - name: Run unit tests (xtenant-render)
-        working-directory: functions/xtenant-render
-        run: go test -v -cover ./...
-
   discover:
     runs-on: ubuntu-latest
     outputs:
@@ -90,23 +25,108 @@ jobs:
         uses: actions/checkout@v4
 
       - id: set-matrix
+        shell: bash
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            FUNCTION_NAME="${{ github.ref_name }}"
-            FUNCTION_NAME="${FUNCTION_NAME#functions/}"
-            FUNCTION_NAME="${FUNCTION_NAME%/v*}"
-            DIRS=$(printf '%s\n' "$FUNCTION_NAME" | jq -R -s -c 'split("\n")[:-1]')
-          else
-            DIRS=$(find "$FUNCTIONS_DIR" -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | jq -R -s -c 'split("\n")[:-1]')
-          fi
-          echo "matrix={\"function\":$DIRS}" >> $GITHUB_OUTPUT
+          set -euo pipefail
 
-  build:
-    needs: [lint, unit-test, discover]
-    # Always build to validate packaging, but only publish from function tags.
+          # If the workflow was triggered by a tag, it assumes you want exactly one function.
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            tag="${{ github.ref_name }}"
+
+            # Library/CLI tags (e.g. types/xtenant/v0.2.0) are not function builds.
+            # Produce an empty matrix so all downstream jobs are no-ops.
+            if [[ "$tag" != functions/* ]]; then
+              echo "Tag ${tag} is not a function tag; nothing to build."
+              echo 'matrix={"function":[]}' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            # Takes the tag name e.g., functions/xtenant-validate/v0.3.1
+            # Removes the "functions/" prefix e.g., xtenant-validate/v0.3.1
+            function_name="${tag#functions/}"
+            # Removes the "/v0.3.1" suffix e.g., xtenant-validate
+            function_name="${function_name%/v*}"
+            # Converts to JSON array e.g., ["xtenant-validate"]
+            dirs=$(printf '%s\n' "$function_name" | jq -R -s -c 'split("\n")[:-1]')
+          else
+            # Otherwise, it discovers all function directories under the FUNCTIONS_DIR.
+            dirs=$(find "$FUNCTIONS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -R -s -c 'split("\n")[:-1]')
+          fi
+
+          # Writes a GitHub Actions output named "matrix"
+          # with the value of the JSON array of function names.
+          # E.g., ["xtenant-validate", "xtenant-render"] or ["xtenant-validate"] depending on the trigger.
+          echo "matrix={\"function\":$dirs}" >> "$GITHUB_OUTPUT"
+
+  lint:
+    needs: discover
+    runs-on: ubuntu-latest
+
+    # Loop over the discovered function directories and run linting for each.
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          # We run linting before tests, so we don't want to cache test dependencies yet.
+          cache: false
+
+      - name: Check go mod tidy
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run `go mod tidy` in the function directory and check that it doesn't change go.mod or go.sum.
+          function_path="${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}"
+          (
+            cd "$function_path"
+            go mod tidy
+          )
+          # Check that go.mod and go.sum are unchanged after running tidy.
+          git diff --exit-code -- "$function_path/go.mod" "$function_path/go.sum"
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: ${{ env.GOLANGCI_VERSION }}
+          working-directory: ${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}
+          args: --config ../../.golangci.yml
+
+  unit-test:
+    needs: discover
     runs-on: ubuntu-latest
 
     strategy:
+      # We want to run tests for all functions even if some fail, so we set fail-fast to false.
+      fail-fast: false
+      # Loop over the discovered function directories and run tests for each.
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run unit tests
+        working-directory: ${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}
+        run: go test -v -cover ./...
+
+  build:
+    needs: [discover, lint, unit-test]
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
 
     permissions:
@@ -123,27 +143,48 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Set variables
+        shell: bash
         run: |
-          IMAGE_TAG="${{ github.sha }}"
+          set -euo pipefail
+
+          # Determine the image tag based on the Git reference.
+          image_tag="${{ github.sha }}"
+          # If the workflow was triggered by a tag, use the tag name
+          # as the image tag instead of the commit SHA.
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            IMAGE_TAG="${{ github.ref_name }}"
-            IMAGE_TAG="${IMAGE_TAG##*/}"
+            # Takes the tag name e.g., functions/xtenant-validate/v0.3.1
+            image_tag="${{ github.ref_name }}"
+            # Keeps only everything after the last "/"
+            # E.g., functions/xtenant-validate/v0.3.1 → v0.3.1
+            image_tag="${image_tag##*/}"
           fi
 
-          echo "FUNCTION_NAME=${{ matrix.function }}" >> $GITHUB_ENV
-          echo "PUBLISHED_FUNCTION_NAME=function-${{ matrix.function }}" >> $GITHUB_ENV
-          echo "FUNCTION_PATH=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}" >> $GITHUB_ENV
-          echo "PACKAGE_FILE=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}/${{ matrix.function }}.xpkg" >> $GITHUB_ENV
-          echo "RUNTIME_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.function }}-runtime:${IMAGE_TAG}" >> $GITHUB_ENV
-          echo "XPKG_VERSION=${IMAGE_TAG}" >> $GITHUB_ENV
+          # E.g., for matrix.function=xtenant-validate, this sets:
+          #     FUNCTION_NAME=xtenant-validate
+          #     PUBLISHED_FUNCTION_NAME=function-xtenant-validate
+          #     FUNCTION_PATH=functions/xtenant-validate
+          #     PACKAGE_FILE=functions/xtenant-validate/xtenant-validate.xpkg
+          #     RUNTIME_IMAGE=ghcr.io/<owner>/xtenant-validate-runtime:<tag>
+          #     XPKG_VERSION=<tag>
+          echo "FUNCTION_NAME=${{ matrix.function }}" >> "$GITHUB_ENV"
+          echo "PUBLISHED_FUNCTION_NAME=function-${{ matrix.function }}" >> "$GITHUB_ENV"
+          echo "FUNCTION_PATH=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}" >> "$GITHUB_ENV"
+          echo "PACKAGE_FILE=${{ env.FUNCTIONS_DIR }}/${{ matrix.function }}/${{ matrix.function }}.xpkg" >> "$GITHUB_ENV"
+          echo "RUNTIME_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.function }}-runtime:${image_tag}" >> "$GITHUB_ENV"
+          echo "XPKG_VERSION=${image_tag}" >> "$GITHUB_ENV"
 
+      # Crossplane CLI is required to build and push the function packages, so we install it in the workflow.
       - name: Install Crossplane CLI
+        shell: bash
         run: |
-          mkdir tmp && cd tmp
-          curl -sL https://raw.githubusercontent.com/crossplane/crossplane/main/install.sh | sh
-          sudo mv crossplane /usr/local/bin
+          set -euo pipefail
+          version="${{ env.CROSSPLANE_CLI_VERSION }}"
+          url="https://releases.crossplane.io/stable/${version}/bin/linux_amd64/crank"
+          curl -fsSL "${url}" -o /tmp/crossplane
+          chmod +x /tmp/crossplane
+          sudo mv /tmp/crossplane /usr/local/bin/crossplane
 
-      - name: Login to GitHub Container Registry
+      - name: Login to ghcr.io
         if: startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
         with:
@@ -151,32 +192,54 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Example tag: ghcr.io/rezakaramad/xtenant-validate-runtime:v0.3.1
       - name: Build runtime image
+        shell: bash
         run: |
+          set -euo pipefail
+
+          ctx=$(mktemp -d)
+          trap 'rm -rf "$ctx"' EXIT
+          cp -a "$FUNCTION_PATH/." "$ctx/"
+
+          module_prefix="github.com/${{ github.repository }}"
+          while IFS= read -r module; do
+            rel="${module#${module_prefix}/}"
+            if [[ -d "$rel" ]]; then
+              mkdir -p "$ctx/$(dirname "$rel")"
+              cp -a "$rel" "$ctx/$rel"
+              (
+                cd "$ctx"
+                go mod edit -replace="$module=./$rel"
+              )
+            fi
+          done < <(awk '$2 == "v0.0.0" {print $1}' "$FUNCTION_PATH/go.mod" | grep "^${module_prefix}/" || true)
+
           docker build \
             --platform linux/amd64 \
             --build-arg GO_VERSION=${{ env.GO_VERSION }} \
-            -t $RUNTIME_IMAGE \
-            $FUNCTION_PATH
+            -t "$RUNTIME_IMAGE" \
+            "$ctx"
 
       - name: Push runtime image
         if: startsWith(github.ref, 'refs/tags/')
-        run: docker push $RUNTIME_IMAGE
+        run: docker push "$RUNTIME_IMAGE"
 
+      # Build the Crossplane package (.xpkg) for the function
       - name: Build Crossplane package
         run: |
           crossplane xpkg build \
-            --package-root $FUNCTION_PATH/package \
-            --embed-runtime-image $RUNTIME_IMAGE \
-            --package-file $PACKAGE_FILE
+            --package-root "$FUNCTION_PATH/package" \
+            --embed-runtime-image "$RUNTIME_IMAGE" \
+            --package-file "$PACKAGE_FILE"
 
       - name: Push Crossplane package
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           crossplane xpkg push \
-            -f $PACKAGE_FILE \
-            ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:${XPKG_VERSION}
+            -f "$PACKAGE_FILE" \
+            "ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:${XPKG_VERSION}"
 
           crossplane xpkg push \
-            -f $PACKAGE_FILE \
-            ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:latest
+            -f "$PACKAGE_FILE" \
+            "ghcr.io/${{ github.repository_owner }}/${PUBLISHED_FUNCTION_NAME}:latest"
