@@ -48,14 +48,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Write a netrc file so 'go mod download' inside the Docker build can
-      # fetch private modules. Passed as a build secret — never baked into the image.
-      - name: Create netrc for private Go modules
-        run: |
-          printf 'machine github.com\nlogin x-access-token\npassword %s\n' \
-            "${{ secrets.GITHUB_TOKEN }}" > /tmp/netrc
-          chmod 600 /tmp/netrc
-
       # Build the multi-arch runtime image and push it to ghcr.io.
       # The digest is captured so the xpkg step pins to the exact image.
       - name: Build and push runtime image
@@ -70,8 +62,6 @@ jobs:
             ${{ steps.meta.outputs.runtime_image }}:latest
           build-args: |
             GO_VERSION=1.26
-          secrets: |
-            netrc=/tmp/netrc
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -91,25 +81,9 @@ jobs:
           sudo install -m 0755 /tmp/crossplane /usr/local/bin/crossplane
           crossplane version
 
-      # Write a plain Docker config (no credential helper) so the crossplane
-      # CLI's OCI client can authenticate against ghcr.io on private repos.
-      # The runner's default Docker config may use a credential helper binary
-      # that isn't available to non-docker processes.
-      - name: Write Docker config for Crossplane CLI
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GHCR_USER: ${{ github.actor }}
-        run: |
-          mkdir -p /tmp/xpkg-docker
-          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}' \
-            "$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w 0)" \
-            > /tmp/xpkg-docker/config.json
-
       # Build the crossplane xpkg, embedding the runtime image by digest for
       # a reproducible and content-addressable package.
       - name: Build crossplane xpkg
-        env:
-          DOCKER_CONFIG: /tmp/xpkg-docker
         run: |
           crossplane xpkg build \
             --package-root=functions/${{ steps.meta.outputs.function }}/package \
@@ -117,8 +91,6 @@ jobs:
             -o /tmp/function.xpkg
 
       - name: Push crossplane xpkg
-        env:
-          DOCKER_CONFIG: /tmp/xpkg-docker
         run: |
           crossplane xpkg push \
             -f /tmp/function.xpkg \

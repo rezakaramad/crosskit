@@ -2,7 +2,7 @@
 
 # We use the latest Go 1.x version unless asked to use something else.
 # The GitHub Actions CI job sets this argument for a consistent Go version.
-ARG GO_VERSION=1.26
+ARG GO_VERSION=1
 
 # Setup the base environment. The BUILDPLATFORM is set automatically by Docker.
 # The --platform=${BUILDPLATFORM} flag tells Docker to build the function using
@@ -21,12 +21,7 @@ ENV CGO_ENABLED=0
 # This lets us avoid re-downloading modules if we don't need to. The type=target
 # mount tells Docker to mount the current directory read-only in the WORKDIR.
 # The type=cache mount tells Docker to cache the Go modules cache across builds.
-RUN --mount=target=. \
-    --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=secret,id=netrc,target=/root/.netrc \
-    TOKEN=$$(awk '/password/{print $$2}' /root/.netrc) \
-    && git config --global url."https://x-access-token:$${TOKEN}@github.com/".insteadOf "https://github.com/" \
-    && GOPRIVATE=github.com/rezakaramad/* go mod download
+# RUN --mount=target=. --mount=type=cache,target=/go/pkg/mod go mod download
 
 # The TARGETOS and TARGETARCH args are set by docker. We set GOOS and GOARCH to
 # these values to ask Go to compile a binary for these architectures. If
@@ -39,9 +34,9 @@ ARG TARGETARCH
 # current directory read-only in the WORKDIR. The type=cache mount tells Docker
 # to cache the Go modules cache across builds.
 RUN --mount=target=. \
-    --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /function .
+  --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -mod=vendor -o /function .
 
 # Produce the Function image. We use a very lightweight 'distroless' image that
 # does not include any of the build tools used in previous stages.
