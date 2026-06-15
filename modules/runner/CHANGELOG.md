@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/rezakaramad/crossplane-toolkit/compare/modules/runner/v0.1.0...modules/runner/v0.2.0) (2026-06-15)
+
+
+### Features
+
+* initial release of crossplane-toolkit ([24d4d3d](https://github.com/rezakaramad/crossplane-toolkit/commit/24d4d3df229a922de66d3c51f73a4e25ec0d3e7f))
+
 ## [0.1.0](https://github.com/rezakaramad/crossplane-toolkit/compare/modules/runner/v0.0.1...modules/runner/v0.1.0) (2026-06-14)
 
 
