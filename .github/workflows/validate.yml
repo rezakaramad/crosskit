@@ -1,0 +1,62 @@
+name: Validate
+
+on:
+  pull_request:
+    paths:
+      - 'modules/**'
+      - 'functions/**'
+      - '.golangci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  detect-changes:
+    name: Detect changed packages
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.changed.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: changed
+        run: |
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          packages=$(echo "$changed_files" \
+            | grep -E '^(modules|functions)/[^/]+/' \
+            | cut -d/ -f1-2 \
+            | sort -u \
+            | jq -Rcn '[inputs | select(length>0)]' || echo '[]')
+          echo "packages=${packages}" >> "$GITHUB_OUTPUT"
+          echo "Changed packages: ${packages}"
+
+  validate:
+    name: Validate ${{ matrix.package }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.package }}/go.mod
+          cache-dependency-path: ${{ matrix.package }}/go.sum
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Validate ${{ matrix.package }}
+        run: ./hack/validate.sh ${{ matrix.package }}
