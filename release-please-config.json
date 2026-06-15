@@ -10,35 +10,35 @@
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.0"
+      "initial-version": "0.0.1"
     },
     "modules/gcpdns": {
       "component": "modules/gcpdns",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.0"
+      "initial-version": "0.0.1"
     },
     "modules/pdns": {
       "component": "modules/pdns",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.0"
+      "initial-version": "0.0.1"
     },
     "cmd/gen-xrd": {
       "component": "cmd/gen-xrd",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.0"
+      "initial-version": "0.0.1"
     },
     "modules/nextinsight": {
       "component": "modules/nextinsight",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.0"
+      "initial-version": "0.0.1"
     }
   }
 }
