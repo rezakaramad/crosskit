@@ -4,5 +4,13 @@
   "pull-request-footer": "",
   "include-component-in-tag": true,
   "tag-separator": "/",
-  "packages": {}
+  "packages": {
+    "modules/gcpdns": {
+      "component": "modules/gcpdns",
+      "release-type": "go",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.0.1"
+    }
+  }
 }
