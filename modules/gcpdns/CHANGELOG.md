@@ -5,6 +5,13 @@
 
 ### Features
 
+* add modules/gcpdns ([#41](https://github.com/rezakaramad/crossplane-toolkit/issues/41)) ([1dfc2b9](https://github.com/rezakaramad/crossplane-toolkit/commit/1dfc2b9db1d325537a00122463a74f405fd0a8d7))
+
+## 0.0.1 (2026-06-15)
+
+
+### Features
+
 * initial release of crossplane-toolkit ([d3f20b3](https://github.com/rezakaramad/crossplane-toolkit/commit/d3f20b3914a75df5f1200203bd697b532ea15235))
 
 ## [0.1.0](https://github.com/rezakaramad/crossplane-toolkit/compare/modules/gcpdns/v0.0.1...modules/gcpdns/v0.1.0) (2026-06-14)
