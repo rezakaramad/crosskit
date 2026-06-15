@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.1 (2026-06-15)
+
+
+### Features
+
+* add xtenant-render and xtenant-validate functions ([c2fb658](https://github.com/rezakaramad/crossplane-toolkit/commit/c2fb658be8cbe098fb0f040f9705ce1ebb327e31))
+
 ## [0.0.2](https://github.com/rezakaramad/crossplane-toolkit/compare/functions/xtenant-render/v0.0.1...functions/xtenant-render/v0.0.2) (2026-06-14)
 
 
