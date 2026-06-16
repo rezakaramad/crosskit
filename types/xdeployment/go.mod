@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crossplane-toolkit/types/xdeployment
+module github.com/rezakaramad/xp-kit/types/xdeployment
 
 go 1.26.2
 
