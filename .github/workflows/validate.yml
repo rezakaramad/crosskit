@@ -5,6 +5,7 @@ on:
     paths:
       - 'modules/**'
       - 'functions/**'
+      - 'types/**'
       - '.golangci.yml'
 
 permissions:
@@ -26,7 +27,7 @@ jobs:
         run: |
           changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
           packages=$(echo "$changed_files" \
-            | grep -E '^(modules|functions)/[^/]+/' \
+            | grep -E '^(modules|functions|types)/[^/]+/' \
             | cut -d/ -f1-2 \
             | sort -u \
             | jq -Rcn '[inputs | select(length>0)]' || echo '[]')
