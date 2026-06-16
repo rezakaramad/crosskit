@@ -10,7 +10,7 @@
 // Example:
 //
 //	gen-xrd \
-//	  --package github.com/rezakaramad/crossplane-toolkit/types/xtenant \
+//	  --package github.com/rezakaramad/xp-kit/types/xtenant \
 //	  --type    XTenant \
 //	  --group   idp.rezakara.demo \
 //	  --version v1beta1 \
@@ -24,7 +24,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/rezakaramad/crossplane-toolkit/modules/generator"
+	"github.com/rezakaramad/xp-kit/modules/generator"
 )
 
 func main() {
