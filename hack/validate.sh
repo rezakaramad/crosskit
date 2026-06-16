@@ -81,8 +81,8 @@ if [[ $# -gt 0 ]]; then
   exit 0
 fi
 
-# No argument: validate all modules/ and functions/
-for base_dir in "$repo_root/modules" "$repo_root/functions"; do
+# No argument: validate all modules/, functions/, types/, and cmd/
+for base_dir in "$repo_root/modules" "$repo_root/functions" "$repo_root/types" "$repo_root/cmd"; do
   [[ -d "$base_dir" ]] || continue
   while IFS= read -r -d '' dir; do
     validate_package "$dir"
