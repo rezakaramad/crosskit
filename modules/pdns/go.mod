@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crossplane-toolkit/modules/pdns
+module github.com/rezakaramad/xp-kit/modules/pdns
 
 go 1.26.4
 

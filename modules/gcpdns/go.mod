@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crossplane-toolkit/modules/gcpdns
+module github.com/rezakaramad/xp-kit/modules/gcpdns
 
 go 1.26.4
 

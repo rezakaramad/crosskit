@@ -32,6 +32,3 @@ profile.cov
 # Editor/IDE
 # .idea/
 # .vscode/
-functions/xdeployment/
-modules/
-types/xtenant/
