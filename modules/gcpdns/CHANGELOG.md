@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0](https://github.com/rezakaramad/crossplane-toolkit/compare/modules/gcpdns/v0.0.1...modules/gcpdns/v0.1.0) (2026-06-16)
+
+
+### Features
+
+* add modules and types/xtenant ([#55](https://github.com/rezakaramad/crossplane-toolkit/issues/55)) ([0c597fa](https://github.com/rezakaramad/crossplane-toolkit/commit/0c597fa12444b6b056e33998b9edeefff426c532))
+
 ## 0.0.1 (2026-06-15)
 
 
