@@ -23,7 +23,7 @@ import (
 const conditionRendered = "Rendered"
 
 const (
-	exportRepository   = "https://github.com/rezakaramad/kubepave-tenants"
+	exportRepository   = "kubepave-tenants"
 	exportRepoBranch   = "main"
 	exportRepoBasePath = "tenants"
 
