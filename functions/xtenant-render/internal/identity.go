@@ -142,7 +142,8 @@ func buildPrincipalUser(t TenantSpec, binding inputv1beta1.BindingInput, azure i
 			Kind:       usersv1beta1.User_Kind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: principalName,
+			Name:      principalName,
+			Namespace: "crossplane",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by":          managedByCrossplane,
 				"platform.rezakara.demo/tenant":         t.GetName(),
