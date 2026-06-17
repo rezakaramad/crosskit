@@ -44,8 +44,9 @@ func BuildRepositoryFile(t TenantSpec, content string, cfg RepositoryFileConfig)
 			Kind:       repov1alpha1.RepositoryFile_Kind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-bundle", t.GetName()),
-			Labels: commonLabels(t),
+			Name:      fmt.Sprintf("%s-bundle", t.GetName()),
+			Namespace: "crossplane",
+			Labels:    commonLabels(t),
 		},
 		Spec: repov1alpha1.RepositoryFileSpec{
 			ForProvider: repov1alpha1.RepositoryFileParameters{

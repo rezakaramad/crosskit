@@ -69,7 +69,8 @@ func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *compo
 			Kind:       groupsv1beta1.Group_Kind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s-%s", t.GetName(), binding.Name, binding.EnvironmentPrefix),
+			Name:      fmt.Sprintf("%s-%s-%s", t.GetName(), binding.Name, binding.EnvironmentPrefix),
+			Namespace: "crossplane",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by":  managedByCrossplane,
 				"platform.rezakara.demo/tenant": t.GetName(),
