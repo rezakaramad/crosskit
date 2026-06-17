@@ -98,6 +98,7 @@ func buildPrincipalUserPassword(_ inputv1beta1.BindingInput, secretName string) 
 	password.SetAPIVersion("generators.external-secrets.io/v1alpha1")
 	password.SetKind("Password")
 	password.SetName(secretName)
+	password.SetNamespace("crossplane")
 	_ = password.SetValue("spec.length", int64(32))
 	return password
 }
@@ -107,6 +108,7 @@ func buildPrincipalUserPasswordSecret(_ inputv1beta1.BindingInput, secretName st
 	externalSecret.SetAPIVersion("external-secrets.io/v1")
 	externalSecret.SetKind("ExternalSecret")
 	externalSecret.SetName(secretName)
+	externalSecret.SetNamespace("crossplane")
 	_ = externalSecret.SetValue("spec.target.name", secretName)
 	_ = externalSecret.SetValue("spec.dataFrom", []any{
 		map[string]any{
