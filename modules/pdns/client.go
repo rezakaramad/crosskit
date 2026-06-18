@@ -29,14 +29,16 @@ type Client interface {
 // New returns a Client backed by the PowerDNS HTTP API.
 // baseURL is the root of the PowerDNS API (e.g. "https://pdns.example.com/api/v1").
 // apiKey is the X-Api-Key header value.
+// zone is the PowerDNS zone to query (e.g. "wl.rezakara.demo"); a trailing dot is added automatically.
 // httpClient is optional; a default client with a 3 s timeout is used when nil.
-func New(baseURL, apiKey string, httpClient *http.Client) Client {
+func New(baseURL, apiKey, zone string, httpClient *http.Client) Client {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 3 * time.Second}
 	}
 	return &pdnsClient{
 		baseURL: strings.TrimSuffix(baseURL, "/"),
 		apiKey:  apiKey,
+		zone:    EnsureTrailingDot(zone),
 		client:  httpClient,
 	}
 }
@@ -45,6 +47,7 @@ func New(baseURL, apiKey string, httpClient *http.Client) Client {
 type pdnsClient struct {
 	baseURL string
 	apiKey  string
+	zone    string
 	client  *http.Client
 }
 
@@ -53,13 +56,8 @@ type pdnsClient struct {
 func (c *pdnsClient) CheckDNSAvailable(ctx context.Context, fqdn string) (Result, error) {
 	fqdn = EnsureTrailingDot(fqdn)
 
-	zone, err := extractZone(fqdn)
-	if err != nil {
-		return Result{}, err
-	}
-
 	// GET /servers/localhost/zones/<zone>
-	url := fmt.Sprintf("%s/servers/localhost/zones/%s", c.baseURL, zone)
+	url := fmt.Sprintf("%s/servers/localhost/zones/%s", c.baseURL, c.zone)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

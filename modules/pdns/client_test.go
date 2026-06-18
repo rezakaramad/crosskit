@@ -15,6 +15,7 @@ func newTestClient(t *testing.T, handler http.Handler) (*pdnsClient, *httptest.S
 	return &pdnsClient{
 		baseURL: srv.URL,
 		apiKey:  "test-key",
+		zone:    "example.com.",
 		client:  srv.Client(),
 	}, srv
 }

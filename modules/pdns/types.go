@@ -1,10 +1,7 @@
 package pdns
 
 import (
-	"fmt"
 	"strings"
-
-	"golang.org/x/net/publicsuffix"
 )
 
 // Result represents the availability of a DNS name.
@@ -20,16 +17,4 @@ func EnsureTrailingDot(s string) string {
 		return s
 	}
 	return s + "."
-}
-
-// extractZone determines the registrable root zone for a given FQDN using
-// the public suffix list (eTLD+1). For example, "pay.dev.rezakara.demo."
-// returns "rezakara.demo.".
-func extractZone(fqdn string) (string, error) {
-	trimmed := strings.TrimSuffix(fqdn, ".")
-	domain, err := publicsuffix.EffectiveTLDPlusOne(trimmed)
-	if err != nil {
-		return "", fmt.Errorf("cannot determine zone for fqdn %q: %w", fqdn, err)
-	}
-	return domain + ".", nil
 }
