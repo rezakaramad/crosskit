@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crossplane-toolkit/modules/generator
+module github.com/rezakaramad/crosskit/modules/generator
 
 go 1.26.4
 

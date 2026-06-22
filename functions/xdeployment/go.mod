@@ -1,4 +1,4 @@
-module github.com/rezakaramad/xp-kit/functions/xdeployment
+module github.com/rezakaramad/crosskit/functions/xdeployment
 
 go 1.26.4
 
@@ -6,8 +6,8 @@ require (
 	github.com/alecthomas/kong v1.15.0
 	github.com/crossplane/crossplane-runtime/v2 v2.2.1
 	github.com/crossplane/function-sdk-go v0.6.2
-	github.com/rezakaramad/xp-kit/modules/nextinsight v0.1.1
-	github.com/rezakaramad/xp-kit/types/xdeployment v0.1.0
+	github.com/rezakaramad/crosskit/modules/nextinsight v0.1.1
+	github.com/rezakaramad/crosskit/types/xdeployment v0.1.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.36.0
@@ -94,4 +94,9 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
+)
+
+replace (
+	github.com/rezakaramad/crosskit/modules/nextinsight => ../../modules/nextinsight
+	github.com/rezakaramad/crosskit/types/xdeployment => ../../types/xdeployment
 )

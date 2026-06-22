@@ -18,372 +18,182 @@ import (
 	"github.com/crossplane/function-sdk-go/response"
 )
 
-// init runs once automatically when this package is loaded by Go.
-//
-// Here we register core Kubernetes types like Secret, ConfigMap, and Service
-// into Crossplane's composed scheme. This is needed so composed.From(...)
-// knows how to convert those normal Go objects into composed resources.
-//
-// Without this registration, converting a core/v1 object can fail at runtime
-// with an error saying its kind is not registered in the scheme.
-func init() { //nolint:gochecknoinits // registers corev1 types into the composed scheme at startup; no other injection point available
+// The runner creates a Kubernetes Secret when composers return connection details.
+func init() { //nolint:gochecknoinits
 	if err := corev1.AddToScheme(composed.Scheme); err != nil {
 		panic(fmt.Sprintf("register corev1 types in composed scheme: %v", err))
 	}
 }
 
-// ContextEnricher is an optional hook that runs after the XR and defaults
-// have been decoded but before any builder is called. It receives the fully
-// populated Context and may return an enriched copy — for example, one that
-// has AppMetadata resolved from an external source such as Next-Insight.
-//
-// Return a non-nil error to halt reconciliation with a fatal condition.
-type ContextEnricher[XR any, D any] func(ctx context.Context, c Context[XR, D]) (Context[XR, D], error)
-
-// Option is a functional option for [New].
-type Option[XR any, D any] func(*Runner[XR, D])
-
-// RunnerOption is an alias for Option for backwards compatibility.
-type RunnerOption[XR any, D any] = Option[XR, D] //nolint:revive // intentional alias for backwards compatibility
-
-// WithContextEnricher registers an enricher that runs once per reconcile
-// after the XR is decoded. Use it to attach externally-resolved metadata
-// (e.g. Next-Insight AppMetadata) to the Context before builders execute.
-func WithContextEnricher[XR any, D any](e ContextEnricher[XR, D]) RunnerOption[XR, D] {
-	return func(r *Runner[XR, D]) {
-		r.enricher = e
-	}
-}
-
-// Runner owns the full composition function lifecycle for one pipeline step.
-// It decodes the XR, decodes the step input, reads observed and desired state,
-// processes each registered Builder, aggregates connection details, and writes
-// the final desired composed resources back into the response.
-//
-// XR must be a pointer to the typed composite resource struct (e.g. *XDeployment).
-// D  must be a pointer to the typed Composition step input struct (e.g. *XDeploymentDefaults).
-//
-// Typical usage inside RunFunction:
-//
-//	r := runner.New[*MyXR, *MyDefaults](req, f.log)
-//	runner.Register(r, myDeploymentBuilder{})
-//	runner.Register(r, myServiceBuilder{})
-//	return r.Run(ctx)
-type Runner[XR any, D any] struct {
-	req      *fnv1.RunFunctionRequest
-	log      logging.Logger
-	builders []internalBuilder[XR, D]
-	enricher ContextEnricher[XR, D]
+// Runner is used inside a Crossplane function's RunFunction method.
+// Every time Crossplane calls your function’s RunFunction, you create a fresh Runner
+type Runner[XR any, Input runtime.Object] struct {
+	req       *fnv1.RunFunctionRequest
+	log       logging.Logger
+	composers []composerExecutor[XR, Input]
 }
 
 // New creates a Runner for the given request and logger.
-// Typically called once at the top of a RunFunction invocation.
-// Optional [RunnerOption] values can be passed to configure the runner,
-// e.g. [WithContextEnricher].
-func New[XR any, D any](req *fnv1.RunFunctionRequest, log logging.Logger, opts ...RunnerOption[XR, D]) *Runner[XR, D] {
-	r := &Runner[XR, D]{req: req, log: log}
-	for _, opt := range opts {
-		opt(r)
+func New[XR any, Input runtime.Object](
+	req *fnv1.RunFunctionRequest,
+	log logging.Logger,
+) *Runner[XR, Input] {
+	return &Runner[XR, Input]{
+		req: req,
+		log: log,
 	}
-	return r
 }
 
-// Register adds a typed Builder to the Runner.
-//
-// This is a package-level function because Go methods cannot introduce new type
-// parameters. Builders are processed in the order they are registered.
-//
-//	r := runner.New[*MyXR, *MyDefaults](req, log)
-//	runner.Register(r, myDeploymentBuilder{})
-//	runner.Register(r, myServiceBuilder{})
-//	return r.Run(ctx)
-func Register[XR any, Defaults any, Observed runtime.Object, Desired runtime.Object](
-	runner *Runner[XR, Defaults],
-	builder Builder[XR, Defaults, Observed, Desired],
+// Register adds a typed Resource to the Runner.
+func Register[
+	XR any,
+	Input runtime.Object,
+	Observed runtime.Object,
+	Desired runtime.Object,
+](
+	r *Runner[XR, Input],
+	res Composer[XR, Input, Observed, Desired],
 ) {
-	// Wrap the typed builder in the adapter layer used by Runner.
-	runner.builders = append(runner.builders, &builderAdapter[XR, Defaults, Observed, Desired]{builder: builder})
+	r.composers = append(
+		r.composers,
+		&composerAdapter[XR, Input, Observed, Desired]{
+			composer: res,
+		})
 }
 
-// Run executes the full function flow.
-//
-// Composite resource is the parent XR being reconciled.
-// Composed resources are the child resources managed for that XR.
-//
-// The runner reads the observed parent XR and observed child resources,
-// lets builders produce the desired child resources, and writes the final
-// desired composed resources back into the function response.
-func (runner *Runner[XR, D]) Run(ctx context.Context) (*fnv1.RunFunctionResponse, error) {
-	rsp := response.To(runner.req, response.DefaultTTL)
+// ─── Run ─────────────────────────────────────────────────────────────────────
+// Run executes the full function lifecycle and returns the populated response.
+func (r *Runner[XR, Input]) Run(
+	ctx context.Context,
+) (*fnv1.RunFunctionResponse, error) {
+	// Create a response with the same meta as the request and a default TTL.
+	rsp := response.To(r.req, response.DefaultTTL)
 
-	// Get the observed composite resource (parent XR) from the request and decode it into a typed XR struct.
-	observedCompositeResource, err := request.GetObservedCompositeResource(runner.req)
+	// ── 1. Decode observed XR ────────────────────────────────────────────────
+	observedXR, err := request.GetObservedCompositeResource(r.req)
 	if err != nil {
-		runner.fatal(rsp, "cannot get observed composite resource", err)
+		r.fatal(rsp, "cannot get observed composite resource", err)
 		return rsp, nil
 	}
 
-	// Create an empty typed XR object, then copy the observed parent XR data from the request into it.
+	// Decode the observed XR into a typed struct so builders can read from it in a type-safe way.
+	// We use a helper function to allocate a zero value of the right type that is safe to write into, even when XR is a pointer type (e.g. *MyXR).
 	xr := newDecodeTarget[XR]()
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		observedCompositeResource.Resource.UnstructuredContent(), xr,
+		observedXR.Resource.UnstructuredContent(), xr,
 	); err != nil {
-		runner.fatal(rsp, "cannot decode composite resource", err)
+		r.fatal(rsp, "cannot decode composite resource", err)
 		return rsp, nil
 	}
 
-	// The input data is what Crossplane sends in the request
-	// based on the composition step's input configuration.
-	// We decode it into a typed Defaults struct that builders can use.
-	defaults := newDecodeTarget[D]()
-	inputObject, ok := any(defaults).(runtime.Object)
-	if !ok {
-		runner.fatal(rsp, "function input does not implement runtime.Object", fmt.Errorf("input type must implement runtime.Object"))
-		return rsp, nil
-	}
-	if err := request.GetInput(runner.req, inputObject); err != nil {
-		runner.fatal(rsp, "cannot get function input", err)
+	// ── 2. Decode step input ─────────────────────────────────────────────────
+	input := newDecodeTarget[Input]()
+	if err := request.GetInput(r.req, input); err != nil {
+		r.fatal(rsp, "cannot get function input", err)
 		return rsp, nil
 	}
 
-	// Get the observed composed resources (child resources) from the request.
-	observedComposedResources, err := request.GetObservedComposedResources(runner.req)
+	// ── 3. Collect observed composed resources ───────────────────────────────
+	observedComposed, err := request.GetObservedComposedResources(r.req)
 	if err != nil {
-		runner.fatal(rsp, "cannot get observed composed resources", err)
+		r.fatal(rsp, "cannot get observed composed resources", err)
 		return rsp, nil
 	}
 
-	// Get the desired composed resources (child resources) from the request.
-	desired, err := request.GetDesiredComposedResources(runner.req)
+	// ── 4. Collect desired composed resources ────────────────────────────────
+	desired, err := request.GetDesiredComposedResources(r.req)
 	if err != nil {
-		runner.fatal(rsp, "cannot get desired composed resources", err)
+		r.fatal(rsp, "cannot get desired composed resources", err)
 		return rsp, nil
 	}
 
-	// We create a shared Context object that is passed to all builders.
-	// This contains the decoded XR, the input defaults, and a logger.
-	// We log which XR we are working on
-	// And later we can add child resource-specific information to the log context as we loop through builders.
-	log := runner.log.WithValues(
-		"xr-version", observedCompositeResource.Resource.GetAPIVersion(),
-		"xr-kind", observedCompositeResource.Resource.GetKind(),
-		"xr-name", observedCompositeResource.Resource.GetName(),
-	)
-
-	// The context is shared across all builders, so it contains the common information they all need.
-	functionContext := Context[XR, D]{
+	// ── 5. Build Context ─────────────────────────────────────────────────────
+	fnCtx := Context[XR, Input]{
 		XR:       xr,
-		Defaults: defaults,
-		Log:      log,
+		Input:    input,
+		Observed: observedComposed,
+		Log: r.log.WithValues(
+			"xr-version", observedXR.Resource.GetAPIVersion(),
+			"xr-kind", observedXR.Resource.GetKind(),
+			"xr-name", observedXR.Resource.GetName(),
+		),
 	}
 
-	// If a ContextEnricher was registered (e.g. to fetch Next-Insight metadata),
-	// run it now so every builder can access the enriched context.
-	if runner.enricher != nil {
-		enriched, err := runner.enricher(ctx, functionContext)
-		if err != nil {
-			runner.fatal(rsp, "cannot enrich context", err)
-			return rsp, nil
-		}
-		functionContext = enriched
-	}
-
-	// Contains all connection data we want to publish for this XR, collected from builders.
-	// E.g., one build might return
-	// map[string]string{
-	//     "host": "postgres.default.svc.cluster.local",
-	//     "port": "5432",
-	// }
+	// ── 6. Call each resource ───────────────────────────────────────────────
 	connectionDetails := map[string]string{}
 
-	// The runner goes through each builder one by one and asks:
-	// - What child resource do you want, and is it ready yet? (Desired and Ready)
-	// - Do you have any connection details I should know about? (Connection)
-	// The runner is just the coordinator that runs the builders in sequence
-	// and collects their results.
-	// One builder represents one child resource.
-	// E.g., a ServiceBuilder manages the desired state of a Service child resource,
-	// and knows how to check if it's ready, and what connection details to extract from it.
-	for _, b := range runner.builders {
-		result, err := b.process(functionContext, observedComposedResources)
+	for _, composer := range r.composers {
+		result, err := composer.process(fnCtx)
 		if err != nil {
-			response.ConditionFalse(rsp, b.condition(), "CompositionError").
+			response.ConditionFalse(rsp, composer.conditionType(), "CompositionError").
 				WithMessage(err.Error()).
 				TargetComposite()
 			return rsp, nil
 		}
 
 		if result == nil {
-			// This means the builder decided to skip building/managing its resource,
-			// so we just move on to the next builder without doing anything.
-			log.Info("Skipping builder", "condition", b.condition())
+			fnCtx.Log.Info("Skipping resource", "condition", composer.conditionType())
 			continue
 		}
 
-		// This updates a condition on the parent XR for each builder
-		// So the XR status reflects whether that child resource is ready or not.
 		if result.ready {
-			response.ConditionTrue(rsp, b.condition(), "Available").
-				TargetComposite()
+			response.ConditionTrue(rsp, composer.conditionType(), "Available").TargetComposite()
 		} else {
-			response.ConditionFalse(rsp, b.condition(), "Unavailable").
-				WithMessage(fmt.Sprintf("%s is not yet available", b.condition())).
+			response.ConditionFalse(rsp, composer.conditionType(), "Unavailable").
+				WithMessage(fmt.Sprintf("%s is not yet available", composer.conditionType())).
 				TargetComposite()
 		}
 
-		// Put the child resource into the final desired set
-		// Later, Crossplane will use that desired set
-		log.Info("Adding desired resource", "name", result.name)
+		fnCtx.Log.Info("Adding desired composer resource", "name", result.name)
 		desired[result.name] = result.desired
 
-		// If the builder returned any connection details, save it in the shared map
-		// so we can publish it later in a connection secret.
+		// Merge this composer's connection details into the shared map; all composers contribute to one Secret.
 		for k, v := range result.connectionDetails {
 			connectionDetails[k] = v
 		}
 	}
 
-	// If we've got any connection details, we create a Secret resource for them
-	// and add it to the desired composed resources with a well-known name.
-	// E.g., if the XR name is "my-db", the connection secret will be named "my-db-connection".
+	// ── 7. Publish connection secret ─────────────────────────────────────────
 	if len(connectionDetails) > 0 {
-		secretName := observedCompositeResource.Resource.GetName() + "-connection"
-		secretResult, err := buildConnectionSecret(secretName, connectionDetails)
+		secretResult, err := buildConnectionSecret(observedXR, connectionDetails)
 		if err != nil {
-			runner.fatal(rsp, "cannot build connection secret", err)
+			r.fatal(rsp, "cannot build connection secret", err)
 			return rsp, nil
 		}
 		desired[secretResult.name] = secretResult.desired
 	}
 
-	// Finally, we write the full desired composed resources back into the function response.
 	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
-		runner.fatal(rsp, "cannot set desired composed resources", err)
+		r.fatal(rsp, "cannot set desired composed resources", err)
 		return rsp, nil
 	}
 
 	return rsp, nil
 }
 
-// fatal is a helper method to set a failure condition on the response and log the error.
-// It does the following:
-//  1. Create a condition named FunctionSuccess
-//  2. Set it to False
-//  3. Use InternalError as the reason
-//  4. Attach msg as the message
-//  5. Publish that condition onto the composite resource and its claim
-func (runner *Runner[XR, D]) fatal(rsp *fnv1.RunFunctionResponse, msg string, err error) {
-	// Add a FunctionSuccess=false condition with reason InternalError to the response.
+// ─── Internal helpers ────────────────────────────────────────────────────────
+
+// fatal sets FunctionSuccess=False on the response and marks the pipeline as
+// failed. This stops Crossplane from proceeding with subsequent pipeline steps.
+func (r *Runner[XR, Input]) fatal(rsp *fnv1.RunFunctionResponse, msg string, err error) {
 	response.ConditionFalse(rsp, "FunctionSuccess", "InternalError").
 		WithMessage(msg).
 		TargetCompositeAndClaim()
 	response.Fatal(rsp, errors.Wrap(err, msg))
 }
 
-// buildResult is the output of a builder's process method.
-// It contains the name of the resource, the desired composed resource, whether it's ready, and any connection details.
-// Carries the output produced by a builder for a single reconciliation loop
-type buildResult struct {
-	name              resource.Name
-	desired           *resource.DesiredComposed
-	ready             bool
-	connectionDetails map[string]string
-}
-
-// internalBuilder is the single adapter layer Runner works with.
-// It hides resource-specific types and returns generic build results.
-type internalBuilder[XR any, Defaults any] interface {
-	condition() string
-	process(ctx Context[XR, Defaults], observedComposedResources map[resource.Name]resource.ObservedComposed) (*buildResult, error)
-}
-
-// builderAdapter wraps a typed Builder and satisfies internalBuilder.
-type builderAdapter[XR any, Defaults any, Observed runtime.Object, Desired runtime.Object] struct {
-	builder Builder[XR, Defaults, Observed, Desired]
-}
-
-func (adapter *builderAdapter[XR, Defaults, Observed, Desired]) condition() string { //nolint:unused // satisfies internalBuilder interface
-	return adapter.builder.Condition()
-}
-
-func (adapter *builderAdapter[XR, Defaults, Observed, Desired]) process( //nolint:unused // satisfies internalBuilder interface
-	context Context[XR, Defaults],
-	observedComposedResources map[resource.Name]resource.ObservedComposed,
-) (*buildResult, error) {
-	name := adapter.builder.ResourceName(context)
-
-	if adapter.builder.Skip(context) {
-		return nil, nil
+// buildConnectionSecret resolves the Secret name (from spec.writeConnectionSecretToRef.name,
+// or "<xr-name>-connection" as fallback), then builds the Secret from the merged
+// connection details and converts it to a composed resource.
+func buildConnectionSecret(xr *resource.Composite, details map[string]string) (*buildResult, error) {
+	name := xr.Resource.GetName() + "-connection"
+	if spec, ok := xr.Resource.UnstructuredContent()["spec"].(map[string]interface{}); ok {
+		if ref, ok := spec["writeConnectionSecretToRef"].(map[string]interface{}); ok {
+			if n, ok := ref["name"].(string); ok && n != "" {
+				name = n
+			}
+		}
 	}
-
-	// Get one decoded observed resource for this builder to use in its Desired, Ready, and Connection methods.
-	// The runner receives observed child resources in a generic unstructured form,
-	// but each builder wants a typed Go object.
-	observedComposedResource, err := decodeObservedComposedResource[Observed](observedComposedResources, name)
-	if err != nil {
-		return nil, fmt.Errorf("decoding observed resource %q: %w", name, err)
-	}
-
-	// Ask the builder to build the desired resource based on the input context and the observed resource.
-	desired, err := adapter.builder.Desired(context)
-	if err != nil {
-		return nil, fmt.Errorf("building desired resource %q: %w", name, err)
-	}
-
-	// If the builder returns a typed nil pointer, we treat it as nil and skip it.
-	if isTypedNil(desired) {
-		return nil, nil
-	}
-
-	// Convert the desired resource to a composed form.
-	composedObj, err := composed.From(desired)
-	if err != nil {
-		return nil, fmt.Errorf("converting resource %q to composed form: %w", name, err)
-	}
-
-	ready := adapter.builder.Ready(context, observedComposedResource)
-	readyState := resource.ReadyFalse
-	if ready {
-		readyState = resource.ReadyTrue
-	}
-
-	return &buildResult{
-		name:              name,
-		desired:           &resource.DesiredComposed{Resource: composedObj, Ready: readyState},
-		ready:             ready,
-		connectionDetails: adapter.builder.Connection(context, observedComposedResource),
-	}, nil
-}
-
-// Convert the observed unstructured composed resource into a typed Go object a builder wants.
-func decodeObservedComposedResource[T runtime.Object](
-	observedComposedResources map[resource.Name]resource.ObservedComposed,
-	name resource.Name,
-) (T, error) {
-	// Find the observed composed resource for this builder based on the name it specified.
-	observedComposedResource, exists := observedComposedResources[name]
-	if !exists {
-		var zero T
-		return zero, nil
-	}
-
-	// Create an empty typed object of type T that the builder wants
-	output := newDecodeTarget[T]()
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		observedComposedResource.Resource.UnstructuredContent(), output,
-	); err != nil {
-		var zero T
-		return zero, err
-	}
-
-	return output, nil
-}
-
-// Create a connection secret resource with the given name and connection details,
-// and convert it to a composed resource.
-func buildConnectionSecret(name string, details map[string]string) (*buildResult, error) {
-	// We create a normal Kubernetes Secret object with the connection details,
-	// and then convert it to a composed resource so we can put it in the desired set.
 	rawSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Type:       corev1.SecretTypeOpaque,
@@ -393,72 +203,103 @@ func buildConnectionSecret(name string, details map[string]string) (*buildResult
 		rawSecret.Data[k] = []byte(v)
 	}
 
-	// Convert the Secret (a normal Kubernetes object) to a composed resource (a special format that Crossplane understands)
-	// so we can put it in the desired set.
 	secret, err := composed.From(rawSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	// We return a buildResult with the name of the resource, the desired composed resource, and ready=true.
 	return &buildResult{
 		name:    resource.Name(name),
 		desired: &resource.DesiredComposed{Resource: secret, Ready: resource.ReadyTrue},
 	}, nil
 }
 
-// We need to create the right empty object for whatever XR actually is at runtime.
-// We don't know the type of XR, whether it's *XDeployment, *XDatabase, or something else.
-// This function simply create an empty value of type T that decoding can write into.
-// If T is a pointer type, it returns a new pointer to the zero value of the element type, otherwise it returns the zero value of T.
-// E.g. newDecodeTarget[*corev1.Secret]() returns a *corev1.Secret pointing to an empty Secret struct.
-// Syntax explanation: this is a generic function which works with any type T, and returns a value of type T.
-// Example of how to use generic functions in Go: https://go.dev/doc/tutorial/generics
-//
-//	func wrap[T any](v T) []T { return []T{v} }
-//	What happens here:
-//	T is set to string
-//	So the function becomes (conceptually):
-//	func wrap(v string) []string
+// Returns an empty object of type T that is safe to write data into..
 func newDecodeTarget[T any]() T {
-	// We need to handle both pointer and non-pointer types
-	// .Elem() gives us the thing inside the pointer,
-	// E.g., If the type is *int, t.Elem() is int, if the type is **corev1.Secret, t.Elem() is *corev1.Secret.
-	//
-	// reflect.TypeOf(...) returns the runtime type of the value
-	// E.g.,
-	// 	reflect.TypeOf("hello")     	// → string
-	//  reflect.TypeOf((*string)(nil)) 	// → *string
-	//  reflect.TypeOf(*corev1.Secret) 	// → **corev1.Secret
-	//
-	// (*T)(nil) A nil pointer of type *T
-	// Used to get the reflect.Type of T without needing an actual value of type T.
-	//
-	t := reflect.TypeOf((*T)(nil)).Elem()
-	if t.Kind() == reflect.Pointer {
-		return reflect.New(t.Elem()).Interface().(T) //nolint:forcetypeassert // type invariant guaranteed by generic constraint T
-		// reflection trick explained:
-		// A way to inspect and manipulate values at runtime, without knowing their type in advance
-		// 		Normal Go value → 42 (you can use it directly)
-		// 		reflect.Value → a box containing 42, with tools to inspect it
-		// reflect.New(t.Elem()) ==> create a new empty value of the type inside the pointer, and return a pointer to it
-		// 		E.g., if T is *corev1.Secret, t is *corev1.Secret, t.Elem() is corev1.Secret,
-		// 		reflect.New(t.Elem()) creates a new corev1.Secret and returns &corev1.Secret{}.
-		// .Interface() ==> convert reflection value to normal Go value
-		// .(T) ==> treat it as type T
-	}
-	// If it's not a pointer, just return the zero value of T
 	var zero T
+	// Look at zero and see what kind of thing it is..
+	v := reflect.ValueOf(&zero).Elem()
+	//
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		// Return &MyXR{} instead of nil when T is a pointer type, so the caller can write into it.
+		v.Set(reflect.New(v.Type().Elem()))
+	}
 	return zero
 }
 
-// isTypedNil reports whether v is nil or a typed nil pointer wrapped in an
-// interface. In Go, a typed nil (e.g. (*corev1.Service)(nil)) stored in an
-// interface is non-nil, so a plain == nil check is insufficient.
-func isTypedNil(v any) bool {
+// isTypedNil reports true when v is a nil pointer wrapped in an interface.
+// reflect.ValueOf((*T)(nil)) is not nil at the interface level, so a plain
+// v == nil check misses this case.
+func isTypedNil(v interface{}) bool {
 	if v == nil {
 		return true
 	}
-	val := reflect.ValueOf(v)
-	return val.Kind() == reflect.Pointer && val.IsNil()
+	rv := reflect.ValueOf(v)
+	return rv.Kind() == reflect.Pointer && rv.IsNil()
+}
+
+// ─── Internal adapter types ──────────────────────────────────────────────────
+
+// buildResult carries the output of one resource for a single reconcile.
+type buildResult struct {
+	name              resource.Name
+	desired           *resource.DesiredComposed
+	ready             bool
+	connectionDetails map[string]string
+}
+
+// composerExecutor is the type-erased interface the Runner works with.
+// It hides the Observed/Desired type parameters of the concrete Composer.
+type composerExecutor[XR any, Input runtime.Object] interface {
+	conditionType() string
+	process(ctx Context[XR, Input]) (*buildResult, error)
+}
+
+// composerAdapter wraps a typed Composer[XR,D,Obs,Des] and satisfies
+// internalComposer[XR,D]. It is the only place where the four type parameters
+// appear together; everything else in the runner sees only two.
+type composerAdapter[XR any, Input runtime.Object, Observed runtime.Object, Desired runtime.Object] struct {
+	composer Composer[XR, Input, Observed, Desired]
+}
+
+func (a *composerAdapter[XR, Input, Observed, Desired]) conditionType() string { //nolint:unused
+	return a.composer.ConditionType()
+}
+
+func (a *composerAdapter[XR, Input, Observed, Desired]) process( //nolint:unused
+	ctx Context[XR, Input],
+) (*buildResult, error) {
+	name := a.composer.ResourceName(ctx)
+
+	obs, err := ObservedAs[Observed](ctx.Observed, name)
+	if err != nil {
+		return nil, fmt.Errorf("decoding observed resource %q: %w", name, err)
+	}
+
+	desired, err := a.composer.Compose(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("composing desired resource %q: %w", name, err)
+	}
+
+	if isTypedNil(desired) {
+		return nil, nil
+	}
+
+	composedObj, err := composed.From(desired)
+	if err != nil {
+		return nil, fmt.Errorf("converting resource %q to composed form: %w", name, err)
+	}
+
+	ready := a.composer.IsReady(ctx, obs)
+	readyState := resource.ReadyFalse
+	if ready {
+		readyState = resource.ReadyTrue
+	}
+
+	return &buildResult{
+		name:              name,
+		desired:           &resource.DesiredComposed{Resource: composedObj, Ready: readyState},
+		ready:             ready,
+		connectionDetails: a.composer.ConnectionDetails(ctx, obs),
+	}, nil
 }

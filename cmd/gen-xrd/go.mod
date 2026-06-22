@@ -1,8 +1,8 @@
-module github.com/rezakaramad/xp-kit/cmd/gen-xrd
+module github.com/rezakaramad/crosskit/cmd/gen-xrd
 
 go 1.26.4
 
-require github.com/rezakaramad/xp-kit/modules/generator v0.0.1
+require github.com/rezakaramad/crosskit/modules/generator v0.0.1
 
 require (
 	dario.cat/mergo v1.0.2 // indirect

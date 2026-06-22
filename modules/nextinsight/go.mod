@@ -1,3 +1,3 @@
-module github.com/rezakaramad/xp-kit/modules/nextinsight
+module github.com/rezakaramad/crosskit/modules/nextinsight
 
 go 1.26.4

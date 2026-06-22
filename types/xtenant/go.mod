@@ -1,4 +1,4 @@
-module github.com/rezakaramad/xp-kit/types/xtenant
+module github.com/rezakaramad/crosskit/types/xtenant
 
 go 1.26.4
 

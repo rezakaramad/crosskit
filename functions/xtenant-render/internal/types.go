@@ -1,6 +1,6 @@
 package render
 
-import xtenant "github.com/rezakaramad/xp-kit/types/xtenant"
+import xtenant "github.com/rezakaramad/crosskit/types/xtenant"
 
 const (
 	managedByCrossplane = "crossplane"

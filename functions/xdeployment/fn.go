@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
-	inputv1beta1 "github.com/rezakaramad/xp-kit/functions/xdeployment/input/v1beta1"
-	render "github.com/rezakaramad/xp-kit/functions/xdeployment/internal"
-	"github.com/rezakaramad/xp-kit/modules/nextinsight"
-	xdeployment "github.com/rezakaramad/xp-kit/types/xdeployment"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xdeployment/input/v1beta1"
+	render "github.com/rezakaramad/crosskit/functions/xdeployment/internal"
+	"github.com/rezakaramad/crosskit/modules/nextinsight"
+	xdeployment "github.com/rezakaramad/crosskit/types/xdeployment"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"

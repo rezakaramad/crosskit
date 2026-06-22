@@ -1,4 +1,4 @@
-module github.com/rezakaramad/xp-kit/functions/xtenant-render
+module github.com/rezakaramad/crosskit/functions/xtenant-render
 
 go 1.26.4
 
@@ -9,8 +9,8 @@ require (
 	github.com/crossplane/function-sdk-go v0.6.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/rezakaramad/xp-kit/modules/nextinsight v0.1.1
-	github.com/rezakaramad/xp-kit/types/xtenant v0.1.2
+	github.com/rezakaramad/crosskit/modules/nextinsight v0.1.1
+	github.com/rezakaramad/crosskit/types/xtenant v0.1.2
 	github.com/upbound/provider-azuread/v2 v2.2.1
 	golang.org/x/text v0.37.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
@@ -138,4 +138,9 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
+)
+
+replace (
+	github.com/rezakaramad/crosskit/modules/nextinsight => ../../modules/nextinsight
+	github.com/rezakaramad/crosskit/types/xtenant => ../../types/xtenant
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rezakaramad/xp-kit/modules/gcpdns"
+	"github.com/rezakaramad/crosskit/modules/gcpdns"
 	"google.golang.org/api/option"
 )
 

@@ -1,7 +1,7 @@
 package render
 
 import (
-	inputv1beta1 "github.com/rezakaramad/xp-kit/functions/xtenant-render/input/v1beta1"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenant-render/input/v1beta1"
 )
 
 // UniqueClustersFromBindings deduplicates bindings into a slice of unique clusters.

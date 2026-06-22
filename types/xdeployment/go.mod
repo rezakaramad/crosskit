@@ -1,4 +1,4 @@
-module github.com/rezakaramad/xp-kit/types/xdeployment
+module github.com/rezakaramad/crosskit/types/xdeployment
 
 go 1.26.2
 

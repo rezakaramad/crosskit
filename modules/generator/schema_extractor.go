@@ -1,7 +1,7 @@
 package generator
 
 // This module takes a Go package path and struct name as input
-// E.g., "github.com/rezakaramad/crossplane-toolkit/types/tenant" and "Tenant"
+// E.g., "github.com/rezakaramad/crosskit/types/tenant" and "Tenant"
 // It uses controller-tools to parse the Go package,
 // extract the struct definition and kubebuilder markers,
 // and produces the OpenAPI v3 schema and additionalPrinterColumns in a single parser pass.
@@ -77,9 +77,9 @@ func ExtractTypeInfo(packagePath, group, typeName, version string) (*TypeInfo, e
 	}
 
 	// This creates a type identifier for the specific struct we want to generate the schema for.
-	// E.g., "github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple" and "XSimple"
+	// E.g., "github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple" and "XSimple"
 	// typeIdent := crd.TypeIdent{
-	//     Package: <the loaded package for github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple>,
+	//     Package: <the loaded package for github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple>,
 	//     Name:    "XSimple",
 	// }
 	typeIdent := crd.TypeIdent{Package: roots[0], Name: typeName}
@@ -127,11 +127,11 @@ func ExtractTypeInfo(packagePath, group, typeName, version string) (*TypeInfo, e
 }
 
 // Figures out where the package lives on disk
-// Example input: "github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple"
+// Example input: "github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple"
 // Example output: "/home/reza/projects/crossplane-toolkit/modules/generator/testdata/xsimple"
 //
 // Go packages can come from different places:
-// 1. Your current module (e.g. "github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple")
+// 1. Your current module (e.g. "github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple")
 // 2. A dependency module (e.g. "sigs.k8s.io/controller-tools")
 // 3. A replace directive in go.mod that points to a local path (e.g. "github.com/rezakaramad/some-lib" → "../some-lib")
 // 4. A dependency module in the Go module cache (e.g. "github.com/rezakaramad/some-lib" → "$GOPATH/pkg/mod/github.com/rezakaramad/some-lib@v1.2.3")
@@ -142,8 +142,8 @@ func findModuleDir(packagePath string) (string, error) { //nolint:gocognit // in
 	if ok {
 		// Strategy 1: package belongs to the same module as the currently running program.
 		// .Main.Path ==> the path of current module
-		// E.g., buildInfo.Main.Path = "github.com/rezakaramad/crossplane-toolkit/modules/generator"
-		//		packagePath = "github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple"
+		// E.g., buildInfo.Main.Path = "github.com/rezakaramad/crosskit/modules/generator"
+		//		packagePath = "github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple"
 		// 		subPath = /testdata/xsimple
 		//		module root = /home/kara/github/r-karamad/crossplane-toolkit/modules/generator
 		// 		final path = /home/kara/github/r-karamad/crossplane-toolkit/modules/generator/testdata/xsimple

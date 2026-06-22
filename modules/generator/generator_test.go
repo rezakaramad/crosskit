@@ -12,7 +12,7 @@ import (
 	apiextensionsv2 "github.com/crossplane/crossplane/v2/apis/apiextensions/v2"
 )
 
-const testPackagePath = "github.com/rezakaramad/crossplane-toolkit/modules/generator/testdata/xsimple"
+const testPackagePath = "github.com/rezakaramad/crosskit/modules/generator/testdata/xsimple"
 
 // TestExtractTypeInfo_Fields verifies that the schema extractor finds the expected
 // fields and kubebuilder marker constraints on the XSimple test fixture.

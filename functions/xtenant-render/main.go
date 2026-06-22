@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/rezakaramad/xp-kit/modules/nextinsight"
+	"github.com/rezakaramad/crosskit/modules/nextinsight"
 
 	"github.com/crossplane/function-sdk-go"
 )
