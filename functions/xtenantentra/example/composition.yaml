@@ -1,0 +1,33 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtenantgroups
+spec:
+  compositeTypeRef:
+    apiVersion: platform.jysk.tech/v1beta1
+    kind: XTenantGroups
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xtenantgroups
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: XTenantGroupsDefaults
+
+        argocdApp:
+          appRegObjectID: 00000000-0000-0000-0000-000000000000 # The ObjectID of the App Registration
+          enterpriseAppObjectID: c6a04ee4-3d72-48a6-a091-216613c6e15f # The ObjectID of the Enterprise App
+
+        gcpAppSSO:
+          roleID: 9e79c739-f165-49e8-8745-fe08f1634b3b # The "Default Organization" role
+          objectID: 63a14b8b-6a4c-4b76-9fff-7e2c5b7d8205 # The ObjectID of the Enterprise App
+
+        gcpAppSCIM:
+          roleID: 9e79c739-f165-49e8-8745-fe08f1634b3b # The "Default Organization" role
+          objectID: 96fea9ce-88a6-4284-a9b8-8b3408800da4 # The ObjectID of the Enterprise App
+
+        # The provider config all resources should reference.
+        providerConfigRef:
+          name: azuread
+          kind: ClusterProviderConfig

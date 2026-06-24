@@ -1,0 +1,6 @@
+# Replace this with your XR!
+apiVersion: platform.jysk.tech/v1beta1
+kind: XTenantGroups
+metadata:
+  name: pillow-factory
+spec: {}
