@@ -1,9 +1,12 @@
+// Package xtenantentra defines the XTenantEntra composite resource type.
 package xtenantentra
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// XTenantEntra is a composite resource representing an Entra tenant.
+//
 // +kubebuilder:object:root=true
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() >= 3 && self.metadata.name.size() <= 21 && self.metadata.name.matches('^[a-z][a-z0-9-]*[a-z0-9]$')",message="metadata.name must be 3-21 chars, a valid RFC 1035 DNS label (lowercase letters, digits, hyphens; start with a letter and end alphanumeric)"
 type XTenantEntra struct {
@@ -13,6 +16,8 @@ type XTenantEntra struct {
 	Status            XTenantEntraStatus `json:"status,omitempty"`
 }
 
+// XTenantEntraSpec defines the desired state of XTenantEntra.
 type XTenantEntraSpec struct{}
 
+// XTenantEntraStatus defines the observed state of XTenantEntra.
 type XTenantEntraStatus struct{}
