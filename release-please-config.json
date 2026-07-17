@@ -5,19 +5,12 @@
   "include-component-in-tag": true,
   "tag-separator": "/",
   "packages": {
-    "modules/gcpdns": {
-      "component": "modules/gcpdns",
-      "release-type": "go",
-      "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true,
-      "initial-version": "0.0.1"
-    },
     "modules/generator": {
       "component": "modules/generator",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.0.1"
+      "initial-version": "0.1.0"
     },
     "modules/composer": {
       "component": "modules/composer",
@@ -39,20 +32,6 @@
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "initial-version": "0.1.0"
-    },
-    "modules/pdns": {
-      "component": "modules/pdns",
-      "release-type": "go",
-      "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true,
-      "initial-version": "0.0.1"
-    },
-    "modules/nextinsight": {
-      "component": "modules/nextinsight",
-      "release-type": "go",
-      "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true,
-      "initial-version": "0.0.1"
     }
   }
 }
