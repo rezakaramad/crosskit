@@ -2,7 +2,10 @@ module github.com/rezakaramad/crosskit/cmd/gen-xrd
 
 go 1.26.4
 
-require github.com/rezakaramad/crosskit/modules/generator v0.0.1
+require (
+	github.com/rezakaramad/crosskit/modules/generator v0.1.0
+	github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect

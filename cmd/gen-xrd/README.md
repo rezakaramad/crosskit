@@ -7,8 +7,8 @@ Pass the Go import path of any package containing a kubebuilder-annotated XR typ
 ## Usage
 
 ```sh
-go run github.com/rezakaramad/crossplane-toolkit/cmd/gen-xrd \
-  --package github.com/rezakaramad/crossplane-toolkit/types/xtenant \
+go run github.com/rezakaramad/crosskit/cmd/gen-xrd \
+  --package github.com/rezakaramad/crosskit/types/xtenant \
   --type    XTenant \
   --group   idp.rezakara.demo \
   --version v1beta1 \
@@ -18,8 +18,8 @@ go run github.com/rezakaramad/crossplane-toolkit/cmd/gen-xrd \
 Omit `--output` to print to stdout and pipe directly into kubectl:
 
 ```sh
-go run github.com/rezakaramad/crossplane-toolkit/cmd/gen-xrd \
-  --package github.com/rezakaramad/crossplane-toolkit/types/xtenant \
+go run github.com/rezakaramad/crosskit/cmd/gen-xrd \
+  --package github.com/rezakaramad/crosskit/types/xtenant \
   --type    XTenant \
   --group   idp.rezakara.demo \
   --version v1beta1 \
@@ -42,13 +42,13 @@ go run github.com/rezakaramad/crossplane-toolkit/cmd/gen-xrd \
 If your XR types module is not yet published, add a `replace` directive to this module's `go.mod`:
 
 ```
-replace github.com/rezakaramad/crossplane-toolkit/types/xtenant => ../../types/xtenant
+replace github.com/rezakaramad/crosskit/types/xtenant => ../../types/xtenant
 ```
 
 Then run:
 
 ```sh
-go get github.com/rezakaramad/crossplane-toolkit/types/xtenant
+go get github.com/rezakaramad/crosskit/types/xtenant
 go mod tidy
 ```
 
