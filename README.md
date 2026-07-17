@@ -4,7 +4,7 @@
 <p align="center" >
 	<img src="https://img.shields.io/badge/go-00ADD8?style=flat&logo=go&logoColor=white" />
   <img src="https://img.shields.io/badge/crossplane-326CE5?style=flat&logo=crossplane&logoColor=white" />
-	<img src="https://img.shields.io/badge/release--please-34A853?style=flat" />
+
 	<img src="https://img.shields.io/badge/github%20actions-CI-2088FF?style=flat&logo=githubactions&logoColor=white" />
 </p>
 
@@ -89,13 +89,13 @@ functions/<name>/
    ```
    This creates the `Dockerfile`, `go.mod`, `package/crossplane.yaml`, and Go boilerplate under `functions/<name>/`.
 2. Add the module to `go.work` (so local CI resolves modules consistently).
-3. Add a `packages` entry for `functions/<name>` in `release-please-config.json` (include `initial-version` if desired).
-4. Open a PR and merge — release-please will create the release PR and tags, and CI will publish the packages automatically when the release PR is merged.
+3. Open a PR and merge to `main`.
+4. Publish by pushing a tag `functions/<name>/v<version>` — CI builds and pushes the runtime image and Crossplane package to GHCR automatically.
 
 Notes:
 
-- You do not need to create or push tags manually — release-please manages tagging and releases.
-- Keep commit scopes aligned with package paths (e.g. `feat!(types/xtenant):`) so release-please picks up the right component.
+- Tags drive releases: pushing `functions/<name>/v<version>` triggers the publish workflow.
+- Keep one version series per package path (e.g. `functions/xtenantentra/v0.1.0`, `modules/composer/v0.1.0`).
 
 ## Release flow
 
@@ -103,35 +103,44 @@ Notes:
 
 | Step | Who | Result |
 | --- | --- | --- |
-| Open release PR | release-please (on merge to `main`) | Bumped changelogs + `.release-please-manifest.json` |
-| Merge release PR | **You** | GitHub Releases + tags created; build workflow dispatched automatically |
-| Build and publish | CI | Runtime image + Crossplane package pushed to GHCR |
+| Bump versions + changelogs | **You** | Commit updated `CHANGELOG.md` for each package |
+| Create and push tags | **You** | Tags like `functions/<name>/v<version>` created |
+| Create GitHub Releases | **You** (`gh release create`) | Release notes published |
+| Build and publish | CI | Runtime image + Crossplane package pushed to GHCR (on function tag push) |
 
 **Steps:**
 
-1. Merge your PR to `main`; if you changed a library API, update function `go.mod` to the upcoming library version first (CI compiles fine via `go.work`)
-2. Merge the release PR opened by release-please — that's it
+1. Merge your PR to `main`; if you changed a library API, update function `go.mod` to the new library version first (CI compiles fine via `go.work`).
+2. Tag each package you want to release and push the tags:
+   ```sh
+   git tag modules/composer/v0.1.0
+   git tag functions/xtenantentra/v0.1.0
+   git push origin modules/composer/v0.1.0 functions/xtenantentra/v0.1.0
+   ```
+3. Create GitHub Releases (optional but recommended for notes):
+   ```sh
+   gh release create modules/composer/v0.1.0 --title "modules/composer v0.1.0" --notes ""
+   ```
 
-After you merge the release PR, release-please creates the GitHub Releases and tags, and the `trigger-function-builds` job dispatches the build workflow automatically for each released function.
+Pushing a `functions/<name>/v<version>` tag triggers the publish workflow, which builds the runtime image and Crossplane package and pushes them to GHCR.
 
-> Never delete and recreate a tag — bump the patch version instead.
+> Never delete and recreate a tag — bump the patch version instead. Moving a tag after the Go module proxy has cached it causes checksum mismatches.
 
-> Commit scopes must match package paths exactly (`feat!(types/xtenant):` not `feat!(xtenant):`) or release-please misses the component.
-
-**If something goes wrong** (workflow failed, tag already existed, etc.), dispatch the build manually:
+**If a function build fails or you need to re-run it**, dispatch or re-push:
 ```sh
-gh workflow run "Build and publish Crossplane function packages" --ref functions/<name>/v<version>
+gh workflow run "Publish Functions" --ref main
+# or re-trigger by pushing a new patch tag
 ```
 
 **Useful commands:**
 ```sh
-gh run list --workflow "Build and publish Crossplane function packages" --limit 10
+gh run list --workflow "Publish Functions" --limit 10
 gh run view <run-id> --log-failed
 gh release list --limit 20
 gh api '/users/rezakaramad/packages?package_type=container&per_page=100' \
-  --jq '.[] | select(.repository.full_name == "rezakaramad/crossplane-toolkit") | .name'
+  --jq '.[] | select(.repository.full_name == "rezakaramad/crosskit") | .name'
 ```
 
-**Version source of truth:** `release-please-config.json` (components) and `.release-please-manifest.json` (current versions).
+**Version source of truth:** git tags (`<package-path>/v<semver>`) and each package's `CHANGELOG.md`.
 
 Made with 🤓, 🐧 and 🍷.
