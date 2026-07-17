@@ -1,6 +1,6 @@
 {
-  "modules/generator": "0.1.0",
-  "modules/composer": "0.1.0",
-  "types/xtenantentra": "0.1.0",
-  "functions/xtenantentra": "0.1.0"
+  "modules/generator": "0.0.0",
+  "modules/composer": "0.0.0",
+  "types/xtenantentra": "0.0.0",
+  "functions/xtenantentra": "0.0.0"
 }

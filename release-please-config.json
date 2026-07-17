@@ -10,28 +10,28 @@
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.1.0"
+      "initial-version": "0.0.0"
     },
     "modules/composer": {
       "component": "modules/composer",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.1.0"
+      "initial-version": "0.0.0"
     },
     "types/xtenantentra": {
       "component": "types/xtenantentra",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.1.0"
+      "initial-version": "0.0.0"
     },
     "functions/xtenantentra": {
       "component": "functions/xtenantentra",
       "release-type": "go",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
-      "initial-version": "0.1.0"
+      "initial-version": "0.0.0"
     }
   }
 }
