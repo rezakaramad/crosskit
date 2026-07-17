@@ -1,18 +1,18 @@
 package composer
 
 import (
+	"reflect"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func init() {
@@ -56,7 +56,9 @@ func TestBaseComposer_GetConditionType(t *testing.T) {
 			}
 
 			got := b.GetConditionType()
-			assert.Equal(t, tt.want, got)
+			if got != tt.want {
+				t.Errorf("GetConditionType() = %q, want %q", got, tt.want)
+			}
 		})
 	}
 }
@@ -134,21 +136,35 @@ func TestBaseComposer_ComposeDesiredResourceFrom(t *testing.T) {
 			got, err := b.ComposeDesiredResourceFrom(tt.structuredResource)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
 				return
 			}
 
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
 			if tt.wantNil {
-				assert.Nil(t, got)
+				if got != nil {
+					t.Errorf("expected nil result, got %+v", got)
+				}
 				return
 			}
 
-			require.NotNil(t, got)
-			assert.Equal(t, tt.resourceName, got.Name)
-			assert.NotNil(t, got.Resource)
-			assert.Equal(t, resource.ReadyFalse, got.Resource.Ready)
+			if got == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if got.Name != tt.resourceName {
+				t.Errorf("Name = %q, want %q", got.Name, tt.resourceName)
+			}
+			if got.Resource == nil {
+				t.Fatal("expected non-nil Resource")
+			}
+			if got.Resource.Ready != resource.ReadyFalse {
+				t.Errorf("Ready = %v, want %v", got.Resource.Ready, resource.ReadyFalse)
+			}
 		})
 	}
 }
@@ -221,19 +237,29 @@ func TestConvertObserved(t *testing.T) {
 			got, err := ConvertObserved[corev1.Service](tt.observed, tt.resourceName)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
 				return
 			}
 
-			require.NoError(t, err)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
 			if tt.wantNil {
-				assert.Nil(t, got)
+				if got != nil {
+					t.Errorf("expected nil result, got %+v", got)
+				}
 				return
 			}
 
-			require.NotNil(t, got)
-			assert.Equal(t, tt.wantName, got.Name)
+			if got == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if got.Name != tt.wantName {
+				t.Errorf("Name = %q, want %q", got.Name, tt.wantName)
+			}
 		})
 	}
 }
@@ -248,11 +274,18 @@ func TestConvertObserved_ConfigMap(t *testing.T) {
 	}
 
 	got, err := ConvertObserved[corev1.ConfigMap](observed, "test-configmap")
-
-	require.NoError(t, err)
-	require.NotNil(t, got)
-	assert.Equal(t, "my-configmap", got.Name)
-	assert.Equal(t, "test-value", got.Data["test-key"])
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil result, got nil")
+	}
+	if got.Name != "my-configmap" {
+		t.Errorf("Name = %q, want %q", got.Name, "my-configmap")
+	}
+	if got.Data["test-key"] != "test-value" {
+		t.Errorf("Data[test-key] = %q, want %q", got.Data["test-key"], "test-value")
+	}
 }
 
 func TestConvertObserved_TypeMismatch(t *testing.T) {
@@ -266,12 +299,17 @@ func TestConvertObserved_TypeMismatch(t *testing.T) {
 	// Try to convert it as a ConfigMap - should succeed but with empty/default fields
 	// because FromUnstructured is lenient
 	got, err := ConvertObserved[corev1.ConfigMap](observed, "test-resource")
-
 	// FromUnstructured doesn't error on type mismatch, it just sets fields it can
-	require.NoError(t, err)
-	require.NotNil(t, got)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil result, got nil")
+	}
 	// The name field is common to all resources so it gets set
-	assert.Equal(t, "my-service", got.Name)
+	if got.Name != "my-service" {
+		t.Errorf("Name = %q, want %q", got.Name, "my-service")
+	}
 }
 
 // TestFunctionContext_Fields verifies that all fields on FunctionContext are
@@ -291,11 +329,21 @@ func TestFunctionContext_Fields(t *testing.T) {
 		Log:              log,
 	}
 
-	assert.Equal(t, xr, ctx.XR)
-	assert.Equal(t, defaults, ctx.Defaults)
-	assert.Equal(t, observed, ctx.Observed)
-	assert.Equal(t, rsp, ctx.FunctionResponse)
-	assert.NotNil(t, ctx.Log)
+	if ctx.XR != xr {
+		t.Errorf("XR = %+v, want %+v", ctx.XR, xr)
+	}
+	if ctx.Defaults != defaults {
+		t.Errorf("Defaults = %+v, want %+v", ctx.Defaults, defaults)
+	}
+	if !reflect.DeepEqual(ctx.Observed, observed) {
+		t.Errorf("Observed = %+v, want %+v", ctx.Observed, observed)
+	}
+	if ctx.FunctionResponse != rsp {
+		t.Errorf("FunctionResponse = %p, want %p", ctx.FunctionResponse, rsp)
+	}
+	if ctx.Log == nil {
+		t.Error("expected non-nil Log")
+	}
 }
 
 // TestDesiredResource_Fields verifies that DesiredResource correctly pairs a
@@ -311,9 +359,15 @@ func TestDesiredResource_Fields(t *testing.T) {
 		Resource: desiredComposed,
 	}
 
-	assert.Equal(t, name, dr.Name)
-	assert.Equal(t, desiredComposed, dr.Resource)
-	assert.Equal(t, resource.ReadyTrue, dr.Resource.Ready)
+	if dr.Name != name {
+		t.Errorf("Name = %q, want %q", dr.Name, name)
+	}
+	if dr.Resource != desiredComposed {
+		t.Errorf("Resource = %p, want %p", dr.Resource, desiredComposed)
+	}
+	if dr.Resource.Ready != resource.ReadyTrue {
+		t.Errorf("Ready = %v, want %v", dr.Resource.Ready, resource.ReadyTrue)
+	}
 }
 
 // Helper functions to build unstructured resources for testing

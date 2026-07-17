@@ -1,7 +1,13 @@
+// Package composer provides generic building blocks for composing Crossplane
+// composed resources from a composite resource and its defaults.
 package composer
 
 import (
 	"reflect"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -9,9 +15,6 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // FunctionContext holds the shared state passed to all resource composers,
@@ -90,6 +93,9 @@ func (b *BaseComposer[XR, D]) ComposeDesiredResourceFrom(structuredResource runt
 	}, nil
 }
 
+// GetConnectionDetails returns key-value pairs to expose in the composed
+// connection secret. The base implementation returns nil; embed and override
+// to contribute connection details.
 func (b *BaseComposer[XR, D]) GetConnectionDetails() map[string]string {
 	return nil
 }
