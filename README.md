@@ -2,8 +2,9 @@
 	<img width="24%" src="./logo.png">
 </p>
 <p align="center" >
-	<img src="https://img.shields.io/badge/go-00ADD8?style=flat&logo=go&logoColor=white" />
-  <img src="https://img.shields.io/badge/crossplane-326CE5?style=flat&logo=crossplane&logoColor=white" />
+  <img src="https://img.shields.io/badge/Crossplane-c?logo=kubernetes&labelColor=555555&color=6743F0&logoColor=ffffff" />
+  <img src="https://img.shields.io/badge/Golang-golang?logo=go&labelColor=555555&color=00ADD8" />
+  <img src="https://img.shields.io/badge/Internal_Developer_Platform-a?logo=devbox&labelColor=555555&color=2F855A&logoColor=white" />
 </p>
 
 A monorepo for Crossplane-related libraries, functions, code generation tools, and shared API types.

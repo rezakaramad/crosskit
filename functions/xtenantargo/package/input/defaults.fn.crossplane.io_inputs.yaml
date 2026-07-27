@@ -1,0 +1,183 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: inputs.defaults.fn.crossplane.io
+spec:
+  group: defaults.fn.crossplane.io
+  names:
+    categories:
+    - crossplane
+    kind: Input
+    listKind: InputList
+    plural: inputs
+    singular: input
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Input can be used to provide input to this Function.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          management:
+            description: Management configures the Application deployed to the management
+              cluster.
+            properties:
+              path:
+                description: Path is the path within the repository to the management
+                  chart.
+                minLength: 1
+                type: string
+              repoURL:
+                description: RepoURL is the URL of the Git repository hosting the
+                  management chart.
+                minLength: 1
+                type: string
+              targetNamespace:
+                description: |-
+                  TargetNamespace is the namespace in the management cluster the
+                  Application deploys into.
+                minLength: 1
+                type: string
+              targetRevision:
+                default: HEAD
+                description: TargetRevision is the Git revision the Application tracks.
+                type: string
+            required:
+            - path
+            - repoURL
+            - targetNamespace
+            type: object
+          metadata:
+            type: object
+          namespace:
+            description: Namespace configures the namespace that holds the ApplicationSet.
+            properties:
+              applicationSet:
+                default: argocd
+                description: |-
+                  ApplicationSet is the namespace the ApplicationSet resource is created
+                  in. This must be the namespace Argo CD's ApplicationSet controller
+                  watches (typically the Argo CD installation namespace).
+                type: string
+              prefix:
+                default: tn-
+                description: |-
+                  Prefix is prepended to the tenant name to form the workload destination
+                  namespace (e.g. "tn-" yields "tn-<tenant>").
+                type: string
+            type: object
+          project:
+            description: Project is the ArgoCD AppProject all generated Applications
+              belong to.
+            minLength: 1
+            type: string
+          workload:
+            description: Workload configures the Applications deployed to the workload
+              clusters.
+            properties:
+              helm:
+                description: Helm configures the Helm source parameters for the workload
+                  Applications.
+                properties:
+                  parameters:
+                    description: |-
+                      Parameters lists Helm parameters to pass. Values may contain Go template
+                      expressions evaluated at ApplicationSet render time.
+                    items:
+                      description: HelmParameter is a Helm --set parameter.
+                      properties:
+                        name:
+                          minLength: 1
+                          type: string
+                        value:
+                          minLength: 1
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                  valueFiles:
+                    description: |-
+                      ValueFiles lists Helm values files to apply. Go template expressions are
+                      evaluated at ApplicationSet render time.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              path:
+                description: Path is the path within the repository to the workload
+                  chart.
+                minLength: 1
+                type: string
+              repoURL:
+                description: RepoURL is the URL of the Git repository hosting the
+                  workload chart.
+                minLength: 1
+                type: string
+              targetClusters:
+                description: TargetClusters selects the workload clusters to deploy
+                  to.
+                properties:
+                  clusterType:
+                    default: tenant
+                    description: ClusterType is the cluster type value the ApplicationSet
+                      targets.
+                    type: string
+                  clusterTypeKey:
+                    default: argocd.rezakara.demo/cluster-type
+                    description: ClusterTypeKey is the cluster label key identifying
+                      the cluster type.
+                    type: string
+                  environmentKey:
+                    default: argocd.rezakara.demo/environment
+                    description: EnvironmentKey is the cluster label key identifying
+                      the environment.
+                    type: string
+                  environments:
+                    default:
+                    - dev
+                    - test
+                    - prod
+                    - wl
+                    description: Environments are the environment label values the
+                      ApplicationSet targets.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              targetRevision:
+                default: HEAD
+                description: TargetRevision is the Git revision the Applications track.
+                type: string
+            required:
+            - path
+            - repoURL
+            - targetClusters
+            type: object
+        required:
+        - management
+        - namespace
+        - project
+        - workload
+        type: object
+    served: true
+    storage: true
