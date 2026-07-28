@@ -90,6 +90,11 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 						RepoURL:        defaults.Management.RepoURL,
 						Path:           defaults.Management.Path,
 						TargetRevision: defaults.Management.TargetRevision,
+						Helm: &argocd.HelmSource{
+							Parameters: []argocd.HelmParameter{
+								{Name: "tenant.name", Value: tenant},
+							},
+						},
 					},
 					Destination: argocd.ApplicationDestination{
 						Name:      "in-cluster",

@@ -16,7 +16,7 @@ func testInput() *inputv1beta1.Input {
 			RepoURL:         "https://github.com/talktorubberduckdev/platform-hub",
 			Path:            "charts/tenant-management",
 			TargetRevision:  "HEAD",
-			TargetNamespace: "tenant-platform-resources",
+			TargetNamespace: "tenant-system",
 		},
 		Workload: inputv1beta1.WorkloadConfig{
 			RepoURL:        "https://github.com/talktorubberduckdev/platform-hub",
@@ -97,11 +97,17 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	if mgmtTmpl.Spec.Source.Path != "charts/tenant-management" {
 		t.Errorf("management source.path = %q, want charts/tenant-management", mgmtTmpl.Spec.Source.Path)
 	}
+	if mgmtTmpl.Spec.Source.Helm == nil ||
+		len(mgmtTmpl.Spec.Source.Helm.Parameters) != 1 ||
+		mgmtTmpl.Spec.Source.Helm.Parameters[0].Name != "tenant.name" ||
+		mgmtTmpl.Spec.Source.Helm.Parameters[0].Value != "pillow-factory" {
+		t.Errorf("management source.helm.parameters = %+v, want [{tenant.name pillow-factory}]", mgmtTmpl.Spec.Source.Helm)
+	}
 	if mgmtTmpl.Spec.Destination.Name != "in-cluster" {
 		t.Errorf("management destination.name = %q, want in-cluster", mgmtTmpl.Spec.Destination.Name)
 	}
-	if mgmtTmpl.Spec.Destination.Namespace != "tenant-platform-resources" {
-		t.Errorf("management destination.namespace = %q, want tenant-platform-resources", mgmtTmpl.Spec.Destination.Namespace)
+	if mgmtTmpl.Spec.Destination.Namespace != "tenant-system" {
+		t.Errorf("management destination.namespace = %q, want tenant-system", mgmtTmpl.Spec.Destination.Namespace)
 	}
 
 	// --- workload generator ---
