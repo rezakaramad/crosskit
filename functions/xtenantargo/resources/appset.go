@@ -73,7 +73,6 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 
 	tenant := xr.GetName()
 	appSetNamespace := defaults.Namespace.ApplicationSet
-	workloadNamespace := defaults.Namespace.Prefix + tenant
 	envRef := labelRef(defaults.Workload.TargetClusters.EnvironmentKey)
 	labels := map[string]string{tenantLabelKey: tenant}
 
@@ -130,8 +129,8 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 					Project: defaults.Project,
 					Source:  workloadSource(defaults.Workload),
 					Destination: argocd.ApplicationDestination{
-						Name:      "{{ .name }}",
-						Namespace: workloadNamespace,
+						Name:      "in-cluster",
+						Namespace: defaults.Management.TargetNamespace,
 					},
 				},
 			},

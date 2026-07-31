@@ -31,7 +31,7 @@ func TestRunFunction(t *testing.T) {
 			"repoURL": "https://github.com/talktorubberduckdev/platform-hub",
 			"path": "charts/tenant-management",
 			"targetRevision": "HEAD",
-			"targetNamespace": "tenant-platform-resources"
+			"targetNamespace": "tenant-system"
 		},
 		"workload": {
 			"repoURL": "https://github.com/talktorubberduckdev/platform-hub",

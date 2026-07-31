@@ -23,7 +23,7 @@ spec:
           repoURL: https://github.com/talktorubberduckdev/platform-hub
           path: charts/tenant-management
           targetRevision: HEAD
-          targetNamespace: tenant-platform-resources
+          targetNamespace: tenant-system
 
         # The Applications deployed to the workload clusters.
         workload:
