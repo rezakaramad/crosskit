@@ -14,6 +14,13 @@ type XTenantArgo struct {
 	Status            XTenantArgoStatus `json:"status,omitempty"`
 }
 
-type XTenantArgoSpec struct{}
+// XTenantArgoSpec defines the tenant-specific inputs the function forwards to
+// the management and workload Applications composed for the tenant.
+type XTenantArgoSpec struct {
+	// ShortName is a short DNS-label alias for the tenant, used to build gateway
+	// hostnames such as <shortName>.<environment>.rezakara.demo. It is required
+	// and must be a non-empty DNS label.
+	ShortName string `json:"shortName"`
+}
 
 type XTenantArgoStatus struct{}
