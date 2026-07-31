@@ -45,7 +45,7 @@ func testInput() *inputv1beta1.Input {
 func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	xr := &xtenantargo.XTenantArgo{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
-		Spec:       xtenantargo.XTenantArgoSpec{},
+		Spec:       xtenantargo.XTenantArgoSpec{ShortName: "pil"},
 	}
 	r := &ArgoCDApplicationSet{XComposer: XComposer{FunctionContext: XContext{XR: xr, Defaults: testInput()}}}
 
@@ -98,10 +98,12 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 		t.Errorf("management source.path = %q, want charts/tenant-management", mgmtTmpl.Spec.Source.Path)
 	}
 	if mgmtTmpl.Spec.Source.Helm == nil ||
-		len(mgmtTmpl.Spec.Source.Helm.Parameters) != 1 ||
+		len(mgmtTmpl.Spec.Source.Helm.Parameters) != 2 ||
 		mgmtTmpl.Spec.Source.Helm.Parameters[0].Name != "tenant.name" ||
-		mgmtTmpl.Spec.Source.Helm.Parameters[0].Value != "pillow-factory" {
-		t.Errorf("management source.helm.parameters = %+v, want [{tenant.name pillow-factory}]", mgmtTmpl.Spec.Source.Helm)
+		mgmtTmpl.Spec.Source.Helm.Parameters[0].Value != "pillow-factory" ||
+		mgmtTmpl.Spec.Source.Helm.Parameters[1].Name != "tenant.tenantShortName" ||
+		mgmtTmpl.Spec.Source.Helm.Parameters[1].Value != "pil" {
+		t.Errorf("management source.helm.parameters = %+v, want [{tenant.name pillow-factory} {tenant.tenantShortName pil}]", mgmtTmpl.Spec.Source.Helm)
 	}
 	if mgmtTmpl.Spec.Destination.Name != "in-cluster" {
 		t.Errorf("management destination.name = %q, want in-cluster", mgmtTmpl.Spec.Destination.Name)
@@ -145,7 +147,12 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	if len(wlTmpl.Spec.Source.Helm.ValueFiles) != 1 {
 		t.Errorf("workload helm.valueFiles len = %d, want 1", len(wlTmpl.Spec.Source.Helm.ValueFiles))
 	}
-	if len(wlTmpl.Spec.Source.Helm.Parameters) != 1 || wlTmpl.Spec.Source.Helm.Parameters[0].Name != "environmentPrefix" {
+	if len(wlTmpl.Spec.Source.Helm.Parameters) != 3 ||
+		wlTmpl.Spec.Source.Helm.Parameters[0].Name != "tenant.name" ||
+		wlTmpl.Spec.Source.Helm.Parameters[0].Value != "pillow-factory" ||
+		wlTmpl.Spec.Source.Helm.Parameters[1].Name != "tenant.tenantShortName" ||
+		wlTmpl.Spec.Source.Helm.Parameters[1].Value != "pil" ||
+		wlTmpl.Spec.Source.Helm.Parameters[2].Name != "environmentPrefix" {
 		t.Errorf("workload helm.parameters = %+v", wlTmpl.Spec.Source.Helm.Parameters)
 	}
 	if wlTmpl.Spec.Destination.Name != "in-cluster" {

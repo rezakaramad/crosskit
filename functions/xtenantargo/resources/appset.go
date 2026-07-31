@@ -72,6 +72,7 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 	defaults := r.FunctionContext.Defaults
 
 	tenant := xr.GetName()
+	shortName := xr.Spec.ShortName
 	appSetNamespace := defaults.Namespace.ApplicationSet
 	envRef := labelRef(defaults.Workload.TargetClusters.EnvironmentKey)
 	labels := map[string]string{tenantLabelKey: tenant}
@@ -92,6 +93,7 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 						Helm: &argocd.HelmSource{
 							Parameters: []argocd.HelmParameter{
 								{Name: "tenant.name", Value: tenant},
+								{Name: "tenant.tenantShortName", Value: shortName},
 							},
 						},
 					},
@@ -127,7 +129,7 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 				},
 				Spec: argocd.ApplicationSpec{
 					Project: defaults.Project,
-					Source:  workloadSource(defaults.Workload),
+					Source:  workloadSource(defaults.Workload, tenant, shortName),
 					Destination: argocd.ApplicationDestination{
 						Name:      "in-cluster",
 						Namespace: defaults.Management.TargetNamespace,
@@ -170,18 +172,19 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 }
 
 // workloadSource builds the ApplicationSource for the workload generator,
-// including optional Helm configuration.
-func workloadSource(w inputv1beta1.WorkloadConfig) *argocd.ApplicationSource {
+// including the tenant identity and optional Helm configuration.
+func workloadSource(w inputv1beta1.WorkloadConfig, tenant, shortName string) *argocd.ApplicationSource {
 	src := &argocd.ApplicationSource{
 		RepoURL:        w.RepoURL,
 		Path:           w.Path,
 		TargetRevision: w.TargetRevision,
 	}
-	if len(w.Helm.ValueFiles) == 0 && len(w.Helm.Parameters) == 0 {
-		return src
-	}
 	helm := &argocd.HelmSource{
 		ValueFiles: w.Helm.ValueFiles,
+		Parameters: []argocd.HelmParameter{
+			{Name: "tenant.name", Value: tenant},
+			{Name: "tenant.tenantShortName", Value: shortName},
+		},
 	}
 	for _, p := range w.Helm.Parameters {
 		helm.Parameters = append(helm.Parameters, argocd.HelmParameter{

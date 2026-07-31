@@ -71,7 +71,7 @@ func TestRunFunction(t *testing.T) {
 								"apiVersion": "idp.rezakara.demo/v1beta1",
 								"kind": "XTenantArgo",
 								"metadata": {"name": "pillow-factory"},
-								"spec": {}
+								"spec": {"shortName": "pil"}
 							}`),
 						},
 					},
