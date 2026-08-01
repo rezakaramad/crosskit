@@ -155,11 +155,11 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 		wlTmpl.Spec.Source.Helm.Parameters[2].Name != "environmentPrefix" {
 		t.Errorf("workload helm.parameters = %+v", wlTmpl.Spec.Source.Helm.Parameters)
 	}
-	if wlTmpl.Spec.Destination.Name != "in-cluster" {
-		t.Errorf("workload destination.name = %q, want in-cluster", wlTmpl.Spec.Destination.Name)
+	if wlTmpl.Spec.Destination.Name != "{{ .name }}" {
+		t.Errorf("workload destination.name = %q, want {{ .name }}", wlTmpl.Spec.Destination.Name)
 	}
-	if wlTmpl.Spec.Destination.Namespace != "tenant-system" {
-		t.Errorf("workload destination.namespace = %q, want tenant-system", wlTmpl.Spec.Destination.Namespace)
+	if wlTmpl.Spec.Destination.Namespace != "pillow-factory" {
+		t.Errorf("workload destination.namespace = %q, want pillow-factory", wlTmpl.Spec.Destination.Namespace)
 	}
 
 	// --- base template ---

@@ -49,6 +49,9 @@ type ManagementConfig struct {
 	// Application deploys into.
 	// +kubebuilder:validation:MinLength=1
 	TargetNamespace string `json:"targetNamespace"`
+
+	// Helm configures additional Helm parameters for the management Application.
+	Helm WorkloadHelmConfig `json:"helm,omitempty"`
 }
 
 // WorkloadConfig configures the Applications the ApplicationSet deploys to

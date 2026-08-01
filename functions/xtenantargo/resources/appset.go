@@ -86,17 +86,7 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 				},
 				Spec: argocd.ApplicationSpec{
 					Project: defaults.Project,
-					Source: &argocd.ApplicationSource{
-						RepoURL:        defaults.Management.RepoURL,
-						Path:           defaults.Management.Path,
-						TargetRevision: defaults.Management.TargetRevision,
-						Helm: &argocd.HelmSource{
-							Parameters: []argocd.HelmParameter{
-								{Name: "tenant.name", Value: tenant},
-								{Name: "tenant.tenantShortName", Value: shortName},
-							},
-						},
-					},
+					Source:  managementSource(defaults.Management, tenant, shortName),
 					Destination: argocd.ApplicationDestination{
 						Name:      "in-cluster",
 						Namespace: defaults.Management.TargetNamespace,
@@ -131,8 +121,8 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 					Project: defaults.Project,
 					Source:  workloadSource(defaults.Workload, tenant, shortName),
 					Destination: argocd.ApplicationDestination{
-						Name:      "in-cluster",
-						Namespace: defaults.Management.TargetNamespace,
+						Name:      "{{ .name }}",
+						Namespace: tenant,
 					},
 				},
 			},
@@ -169,6 +159,30 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 			},
 		},
 	}, nil
+}
+
+// managementSource builds the ApplicationSource for the management generator,
+// always injecting tenant identity and any additional helm config from the input.
+func managementSource(m inputv1beta1.ManagementConfig, tenant, shortName string) *argocd.ApplicationSource {
+	helm := &argocd.HelmSource{
+		ValueFiles: m.Helm.ValueFiles,
+		Parameters: []argocd.HelmParameter{
+			{Name: "tenant.name", Value: tenant},
+			{Name: "tenant.tenantShortName", Value: shortName},
+		},
+	}
+	for _, p := range m.Helm.Parameters {
+		helm.Parameters = append(helm.Parameters, argocd.HelmParameter{
+			Name:  p.Name,
+			Value: p.Value,
+		})
+	}
+	return &argocd.ApplicationSource{
+		RepoURL:        m.RepoURL,
+		Path:           m.Path,
+		TargetRevision: m.TargetRevision,
+		Helm:           helm,
+	}
 }
 
 // workloadSource builds the ApplicationSource for the workload generator,
