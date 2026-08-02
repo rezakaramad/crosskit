@@ -75,7 +75,7 @@ func (s *ArgoCDGroup) CreateResource() *groupsv1beta1.Group {
 				SecurityEnabled:       new(true),
 			},
 			ManagedResourceSpec: commonv2.ManagedResourceSpec{
-				ManagementPolicies: commonv1.ManagementPolicies{"Create", "Observe", "Update"},
+				ManagementPolicies: commonv1.ManagementPolicies{"Create", "Observe", "Update", "Delete"},
 				ProviderConfigReference: &commonv1.ProviderConfigReference{
 					Name: defaults.ProviderConfigRef.Name,
 					Kind: defaults.ProviderConfigRef.Kind,

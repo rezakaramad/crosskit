@@ -35,7 +35,7 @@ func TestVaultGroup_CreateResource(t *testing.T) {
 	if got.Spec.ProviderConfigReference == nil || got.Spec.ProviderConfigReference.Name != "azuread-pc" {
 		t.Errorf("ProviderConfigReference = %v, want name=azuread-pc", got.Spec.ProviderConfigReference)
 	}
-	wantPolicies := commonv1.ManagementPolicies{"Create", "Observe", "Update"}
+	wantPolicies := commonv1.ManagementPolicies{"Create", "Observe", "Update", "Delete"}
 	if len(got.Spec.ManagementPolicies) != len(wantPolicies) {
 		t.Errorf("ManagementPolicies = %v, want %v", got.Spec.ManagementPolicies, wantPolicies)
 	}
