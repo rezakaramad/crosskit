@@ -7,7 +7,7 @@ require (
 	github.com/crossplane/crossplane-runtime/v2 v2.3.1
 	github.com/crossplane/function-sdk-go v0.6.2
 	github.com/google/uuid v1.6.0
-	github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0
+	github.com/rezakaramad/crosskit/types/xtenantentra v0.1.1
 	github.com/upbound/provider-azuread/v2 v2.2.1
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
