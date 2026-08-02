@@ -225,8 +225,8 @@ github.com/prometheus/common v0.68.1 h1:omjRRl4QP4komogpXuhfeOiisQg7xdy8VM1UY+pS
 github.com/prometheus/common v0.68.1/go.mod h1:ZzL3f6u94qUxh9p+tJTrF+FvBS1XXbbRAZCQkytAL0Y=
 github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEycfc=
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
-github.com/rezakaramad/crosskit/modules/composer v0.1.0 h1:KevvUZNXIJgood/RC4fQbO0OZTaG4nKU7stGh47VFEg=
-github.com/rezakaramad/crosskit/modules/composer v0.1.0/go.mod h1:EdN3Qsg/RSc8gdH9sRVZ5M4N1BRYY8IFDi6ZTpauYzE=
+github.com/rezakaramad/crosskit/modules/composer v0.1.1 h1:I8uBNrzqvN6Tie9N78cOpMO3FeO94tB6wOQaf1E6XrM=
+github.com/rezakaramad/crosskit/modules/composer v0.1.1/go.mod h1:HgMqgN1i4s6cfXKQoO4fTRfxnjk4yGe0YX+y8HfRvi8=
 github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0 h1:UoXaWutJ4q+CaSAXnvJZd5y5vmSd3/GQnmG+TssvEP0=
 github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0/go.mod h1:Q9VyjXHHHUnZ1+Gau628q2mnBvGu8sxM18PVg5wW3Ec=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
