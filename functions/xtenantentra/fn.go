@@ -61,10 +61,25 @@ func initResources(fnContext resources.XContext) ([]composer.ComposableResource,
 	if err != nil {
 		return nil, err
 	}
+	vaultGroup, err := resources.NewVaultGroup(fnContext)
+	if err != nil {
+		return nil, err
+	}
+	vaultAppRegRole, err := resources.NewVaultAppRole(fnContext)
+	if err != nil {
+		return nil, err
+	}
+	vaultSsoRoleAssignment, err := resources.NewVaultSsoRoleAssignment(fnContext)
+	if err != nil {
+		return nil, err
+	}
 	return []composer.ComposableResource{
 		argocdGroup,
 		argocdAppRegRole,
 		argocdSsoRoleAssignment,
+		vaultGroup,
+		vaultAppRegRole,
+		vaultSsoRoleAssignment,
 	}, nil
 }
 

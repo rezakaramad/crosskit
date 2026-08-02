@@ -4,16 +4,16 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.21.0
-  name: xtenantgroupsdefaults.defaults.fn.crossplane.io
+  name: inputs.defaults.fn.crossplane.io
 spec:
   group: defaults.fn.crossplane.io
   names:
     categories:
     - crossplane
-    kind: XTenantGroupsDefaults
-    listKind: XTenantGroupsDefaultsList
-    plural: xtenantgroupsdefaults
-    singular: xtenantgroupsdefaults
+    kind: Input
+    listKind: InputList
+    plural: inputs
+    singular: input
   scope: Namespaced
   versions:
   - name: v1beta1
@@ -29,51 +29,21 @@ spec:
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           argocdApp:
-            description: The ArgoCD App Registration and Enterprise Application that
-              enables SSO for users.
+            description: ArgoCDApp holds the ArgoCD App Registration and Enterprise
+              Application IDs.
             properties:
               appRegObjectID:
-                description: The ObjectID of the ArgoCD App Registration
+                description: AppRegObjectID is the object ID of the ArgoCD App Registration.
                 minLength: 1
                 type: string
               enterpriseAppObjectID:
-                description: The ObjectID of the ArgoCD Enterprise Application
+                description: EnterpriseAppObjectID is the object ID of the ArgoCD
+                  Enterprise Application.
                 minLength: 1
                 type: string
             required:
             - appRegObjectID
             - enterpriseAppObjectID
-            type: object
-          gcpAppSCIM:
-            description: The GCP Enterprise Application that enables SCIM Provisioning
-              for users.
-            properties:
-              objectID:
-                description: The ObjectID of the Enterprise Application
-                minLength: 1
-                type: string
-              roleID:
-                description: The "Default Organization" role on the Enterprise Application
-                minLength: 1
-                type: string
-            required:
-            - objectID
-            - roleID
-            type: object
-          gcpAppSSO:
-            description: The GCP Enterprise Application that enables SSO for users.
-            properties:
-              objectID:
-                description: The ObjectID of the Enterprise Application
-                minLength: 1
-                type: string
-              roleID:
-                description: The "Default Organization" role on the Enterprise Application
-                minLength: 1
-                type: string
-            required:
-            - objectID
-            - roleID
             type: object
           kind:
             description: |-
@@ -86,24 +56,42 @@ spec:
           metadata:
             type: object
           providerConfigRef:
+            description: ProviderConfigRef references the AzureAD ProviderConfig to
+              use.
             properties:
               kind:
-                description: ProviderConfig kind
+                description: Kind is the kind of the ProviderConfig.
                 minLength: 1
                 type: string
               name:
-                description: The name of the ProviderConfig to use
+                description: Name is the name of the ProviderConfig to use.
                 minLength: 1
                 type: string
             required:
             - kind
             - name
             type: object
+          vaultApp:
+            description: VaultApp holds the Vault App Registration and Enterprise
+              Application IDs.
+            properties:
+              appRegObjectID:
+                description: AppRegObjectID is the object ID of the Vault App Registration.
+                minLength: 1
+                type: string
+              enterpriseAppObjectID:
+                description: EnterpriseAppObjectID is the object ID of the Vault Enterprise
+                  Application.
+                minLength: 1
+                type: string
+            required:
+            - appRegObjectID
+            - enterpriseAppObjectID
+            type: object
         required:
         - argocdApp
-        - gcpAppSCIM
-        - gcpAppSSO
         - providerConfigRef
+        - vaultApp
         type: object
     served: true
     storage: true

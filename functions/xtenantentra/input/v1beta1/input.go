@@ -19,6 +19,9 @@ type Input struct {
 	// ArgoCDApp holds the ArgoCD App Registration and Enterprise Application IDs.
 	ArgoCDApp ArgoCDAppConfig `json:"argocdApp"`
 
+	// VaultApp holds the Vault App Registration and Enterprise Application IDs.
+	VaultApp VaultAppConfig `json:"vaultApp"`
+
 	// ProviderConfigRef references the AzureAD ProviderConfig to use.
 	ProviderConfigRef ProviderConfigRef `json:"providerConfigRef"`
 }
@@ -29,6 +32,16 @@ type ArgoCDAppConfig struct {
 	AppRegObjectID string `json:"appRegObjectID"`
 
 	// EnterpriseAppObjectID is the object ID of the ArgoCD Enterprise Application.
+	// +kubebuilder:validation:MinLength=1
+	EnterpriseAppObjectID string `json:"enterpriseAppObjectID"`
+}
+
+type VaultAppConfig struct {
+	// AppRegObjectID is the object ID of the Vault App Registration.
+	// +kubebuilder:validation:MinLength=1
+	AppRegObjectID string `json:"appRegObjectID"`
+
+	// EnterpriseAppObjectID is the object ID of the Vault Enterprise Application.
 	// +kubebuilder:validation:MinLength=1
 	EnterpriseAppObjectID string `json:"enterpriseAppObjectID"`
 }
