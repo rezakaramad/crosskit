@@ -6,9 +6,9 @@ Ref: https://buf.build/crossplane/crossplane/docs/main:apiextensions.fn.proto.v1
 
 | proto field | type | what it is | where in your code |
 |---|---|---|---|
-| `meta` (1) | `RequestMeta` | Request metadata: `tag` (dedup id) + `capabilities` (what this Crossplane version supports) | [fn.go](fn.go#L62) `req.GetMeta().GetTag()` |
+| `meta` (1) | `RequestMeta` | Request metadata: `tag` (dedup id) + `capabilities` (what this Crossplane version supports) | [fn.go](xtenantargo/fn.go#L62) `req.GetMeta().GetTag()` |
 | `observed` (2) | `State` | Actual current state of the XR + composed resources, as of pipeline start | via `request.GetObservedComposedResources(req)` and `request.GetObservedCompositeResource(req)` |
-| `desired` (3) | `State` | Desired state **accumulated so far** by earlier functions in the pipeline (partial object) | via `request.GetDesiredComposedResources(req)` |
+| `desired` (3) | `State` | Desired state **accumulated so far** by earlier functions in the pipeline (partial object) | via `request.GetDesiredComposedResources(req)` and `request.GetDesiredCompositeResource(req)` |
 | `input` (4) | `Struct` (JSON) | The `input:` block from your Composition pipeline step | via `request.GetInput(req, input)` into your `inputv1beta1.Input` |
 | `context` (5) | `Struct` | Arbitrary data passed between functions in the pipeline | not used here |
 | `extra_resources` (6, **deprecated**) | `map<string,Resources>` | Old mechanism for fetched extra resources | not used |
@@ -43,21 +43,24 @@ At this point, I was a little puzzled by `observed` and `desired`. so I tried to
 Crossplane is constantly reconciling. Every few moments it asks: "*What does the world look like right now*", and "*what should it look like?*" Then it makes the world match. Those two questions are exactly the two words:
 
 `observed` = what currently exists in the cluster (reality, read-only to you). Crossplane fills this in for you.
+
 `desired` = what you want to exist (your intent). You build this and hand it back.
 
-Crossplane's job = look at the gap between observed and desired, then create/update/delete real Kubernetes objects until reality matches desire.
+Crossplane's job = look at the gap between `observed` and `desired`, then *create/update/delete* real Kubernetes objects until reality matches desire.
 
+```mermaid
 flowchart LR
     O["observed<br/>(what IS)"] --> F["your function"]
     F --> D["desired<br/>(what SHOULD BE)"]
     D --> K["Crossplane makes<br/>the cluster match"]
     K -->|next reconcile| O
+```
 
 You never write `observed`; it's a report. You never read your own past writes from `observed` directly for intent; you express intent purely through `desired`.
 
 **Why your function receives `desired` in the *request* too**
 
-This is the confusing part. `desired` shows up in both the *request* and the *response*. Why?
+This is the confusing part: `desired` shows up in both the *request* and the *response*. Why?
 
 Because a Composition can run **several functions in a pipeline**, one after another:
 
@@ -76,7 +79,9 @@ That's why your code does this at the top:
 desired, err := request.GetDesiredComposedResources(req)  // start from what's already there
 ```
 
-instead of desired := map[...]{}. If you started fresh, you'd wipe out what earlier functions wanted. The golden rule from the schema: **pass through what you don't own, add what you do**.
+instead of `desired := map[...]{}`.
+
+If you started fresh, you'd wipe out what earlier functions wanted. The golden rule from the schema: **pass through what you don't own, add what you do**.
 
 The question that came up here was: *What would it happen if we had only one function in the pipeline?*
 On the very first reconcile, the `desired` composed-resources map in your request is empty; because no function ran before you, so nobody has contributed any desired children yet.
@@ -88,6 +93,7 @@ Even as the only function, your request still contains real data in `observed` (
 2. It's empty this run, but not necessarily empty across the object's lifetime.
 There's a subtlety people miss: `desired` is rebuilt from scratch **on every reconcile**. Crossplane does not carry your previous `desired` map into the next reconcile's request. Each loop iteration, your function runs again and re-declares the full desired state from nothing:
 
+```mermaid
 flowchart LR
     subgraph R1["reconcile #1"]
         A1["req.desired = empty"] --> B1["you add applicationset"] --> C1["rsp.desired = {applicationset}"]
@@ -96,6 +102,7 @@ flowchart LR
         A2["req.desired = empty again"] --> B2["you add applicationset"] --> C2["rsp.desired = {applicationset}"]
     end
     C1 -.->|Crossplane reconciles cluster, then loops| A2
+```
 
 So even in a one-function pipeline you must **always re-add** your resource every run. If your function ever returned an empty `desired`, Crossplane would read that as "you no longer want the ApplicationSet" and **delete** it.
 
@@ -109,8 +116,8 @@ For a single-function pipeline you could start from an empty map and it'd work i
 
 | proto field | type | what it is | where in your code |
 |---|---|---|---|
-| `meta` (1) | `ResponseMeta` | `tag` (must match request) + `ttl` (when Crossplane calls again) | set by `response.To(req, response.DefaultTTL)` at [fn.go](fn.go#L64) |
-| `desired` (2) | `State` | The desired state you want — **partial**; anything you omit that was previously desired gets deleted | set by `response.SetDesiredComposedResources(rsp, desired)` at [fn.go](fn.go#L145) |
+| `meta` (1) | `ResponseMeta` | `tag` (must match request) + `ttl` (when Crossplane calls again) | set by `response.To(req, response.DefaultTTL)` at [fn.go](xtenantargo/fn.go#L64) |
+| `desired` (2) | `State` | The desired state you want — **partial**; anything you omit that was previously desired gets deleted | set by `response.SetDesiredComposedResources(rsp, desired)` at [fn.go](xtenantargo/fn.go#L145) |
 | `results` (3) | `repeated Result` | Observability events (Fatal / Warning / Normal) | `response.Fatal(rsp, ...)` calls produce these |
 | `context` (4) | `Struct` | Context handed to the next function | not used |
 | `requirements` (5) | `Requirements` | Ask Crossplane to fetch extra `resources` / `schemas` for the next reconcile | not used |
@@ -118,4 +125,18 @@ For a single-function pipeline you could start from an empty map and it'd work i
 | `output` (7) | `Struct` | Only for Operations; XRs discard it | not used |
 
 `RunFunctionResponse` is the object your function builds and returns to tell Crossplane what to do. Think of the request as "here's the situation" and the response as "here’s what should happen next."
+
+The one that always gets created first: `meta`
+
+```go
+rsp := response.To(req, response.DefaultTTL)   // xtenantargo/fn.go:64
+```
+
+`response.To` doesn't just make an empty response; it stamps the `meta` field for you:
+
+`meta.tag`: copied from the request's `meta.tag`. Crossplane uses it to match your response to the request it sent (and to cache/dedup identical calls).
+`meta.ttl`: how long Crossplane may reuse this response before calling you again. `response.DefaultTTL` is 60s. It's a caching hint, not a hard schedule.
+
+You almost never touch meta by hand; `response.To` owns it. Everything else you layer on top of `rsp`.
+
 
