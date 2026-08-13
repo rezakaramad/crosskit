@@ -124,19 +124,49 @@ For a single-function pipeline you could start from an empty map and it'd work i
 | `conditions` (6) | `repeated Condition` | Status conditions applied to the XR (and optionally claim) | all your `response.ConditionTrue/False(...).Target...()` calls |
 | `output` (7) | `Struct` | Only for Operations; XRs discard it | not used |
 
-`RunFunctionResponse` is the object your function builds and returns to tell Crossplane what to do. Think of the request as "here's the situation" and the response as "here’s what should happen next."
+`RunFunctionResponse` is the object your function builds and returns to tell Crossplane what to do. Think of the request as "*here's the situation*" and the response as "*here’s what should happen next*."
 
 The one that always gets created first: `meta`
 
 ```go
-rsp := response.To(req, response.DefaultTTL)   // xtenantargo/fn.go:64
+rsp := response.To(req, response.DefaultTTL)
 ```
 
 `response.To` doesn't just make an empty response; it stamps the `meta` field for you:
-
-`meta.tag`: copied from the request's `meta.tag`. Crossplane uses it to match your response to the request it sent (and to cache/dedup identical calls).
-`meta.ttl`: how long Crossplane may reuse this response before calling you again. `response.DefaultTTL` is 60s. It's a caching hint, not a hard schedule.
+- `meta.tag`: copied from the request's `meta.tag`. Crossplane uses it to match your response to the request it sent (and to cache/dedup identical calls).
+- `meta.ttl`: how long Crossplane may reuse this response before calling you again. `response.DefaultTTL` is 60s. It's a caching hint, not a hard schedule.
 
 You almost never touch meta by hand; `response.To` owns it. Everything else you layer on top of `rsp`.
 
+The one that does the real work: `desired`
 
+This is the heart of the response, your **intent**, the merged desired-state map we discussed.
+
+```go
+response.SetDesiredComposedResources(rsp, desired)
+```
+
+Key properties from the schema:
+- It's a **partial** object. You only set the fields you care about. For composed resources (the children) you set `metadata` + `spec`; that's your recipe for what to create. You do not set their `status` (the controller that manages that resource owns its status). For the XR (the composite) you set only its `status`. Its `spec/metadata` belong to the user, and Crossplane ignores anything you put there. (That's the "status only" you selected).
+
+    Why "partial" matters in a pipeline: because several functions each contribute their slice of the same object. If function A sets spec.replicas and function B sets spec.image, neither writes the whole spec — each writes only its part, and Crossplane merges them. So a function returns a fragment, not a complete manifest.
+```go
+function A desired:  spec.replicas = 3
+function B desired:  spec.image    = nginx
+Crossplane merges →  spec: { replicas: 3, image: nginx }
+```
+
+- **Omission = deletion**. Anything that was desired before but isn't in this response gets removed from the cluster. That's why you always rebuild the full map. 
+
+    `desired` is the complete list of what should exist, not a list of changes. Crossplane compares the desired set you return against what it created last time:
+    - present in desired → create/update it
+    - **absent** from desired → Crossplane **deletes** it
+
+    That's exactly why your code starts from `request.GetDesiredComposedResources(req)` and re-adds your resource **every reconcile**.
+
+- It carries three things per resource (the `Resource` message): the `resource` JSON, `connection_details`, and `ready`.
+
+    That last point connects to this line in your loop:
+```go
+desiredResource.Resource.Ready = resource.ReadyTrue   // fn.go
+```
