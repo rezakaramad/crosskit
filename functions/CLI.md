@@ -292,14 +292,3 @@ sequenceDiagram
 
 So the CLI's whole job in the real world is: read env vars, apply defaults → start the gRPC server
 → stay alive. The interesting per-reconcile logic lives entirely in `RunFunction`, not in the CLI.
-
-## Summary
-
-| Aspect | Generic Go? | Domain-specific? |
-| --- | --- | --- |
-| The `CLI` struct + flag parsing | Yes | No |
-| `main()` → parse → `Run()` flow | Yes (command pattern) | No |
-| The specific flags chosen | Partially | Yes (by convention) |
-| What `Run()` actually starts | No | Yes |
-
-Think of the CLI as generic plumbing; the domain logic is *what the plumbing starts up*.
