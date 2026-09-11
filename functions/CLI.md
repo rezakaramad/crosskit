@@ -6,10 +6,10 @@ In Go, the **CLI** is the layer of a program that:
 
 1. Parses arguments, flags, and environment variables passed when the binary is launched
    (e.g. `./function --debug --address=:9443`).
-2. Maps those inputs into typed configuration values.
+2. Maps those inputs into **typed** configuration values.
 3. Starts whatever the program actually does.
 
-The `main()` function is the entry point of any Go executable. The "CLI" is simply the structured
+The `main()` function is the entry point of any Go executable. The **CLI** is simply the structured
 way of turning `os.Args` and environment variables into configuration and then handing control to
 the program's real logic.
 
@@ -72,8 +72,7 @@ All of them serve the same role: turn command-line input into configuration and 
 
 ## Without vs. with a CLI library
 
-The same program can be written by hand or with a CLI library. Both produce the exact same
-behavior; the difference is how much boilerplate you maintain.
+The same program can be written by hand or with a CLI library. Both produce the exact same behavior; the difference is how much boilerplate you maintain.
 
 ### Without a CLI
 
