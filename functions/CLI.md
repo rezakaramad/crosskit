@@ -1,4 +1,4 @@
-# CLI in Go apps
+# CLI in Go programs
 
 ## What "CLI" means
 
