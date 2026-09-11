@@ -292,7 +292,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-You never write `helloHandler(...)` yourself. `http.ListenAndServe` blocks, and the HTTP framework
+You never call `helloHandler(...)` yourself. `http.ListenAndServe` blocks, and the HTTP framework
 calls `helloHandler` every time a request hits `/hello`.
 
 ```mermaid
@@ -303,15 +303,14 @@ flowchart TD
     B -.only on shutdown/crash.-> D["Serve returns → process exits"]
 ```
 
-**That's the whole pattern.** Everything below is just this same idea with gRPC instead of HTTP,
-and Crossplane as the client.
+**That's the whole pattern.** Everything below is just this same idea with gRPC instead of HTTP, and Crossplane as the client.
 
 ---
 
 ## Part 2 — How this repo implements it
 
 Our composition functions are **gRPC servers** instead of HTTP servers, and the **client that sends
-requests is Crossplane**. The three steps are identical; only the library and the request type
+requests is Crossplane**. The three steps are identical; only the library (the framework) and the request type
 differ.
 
 ### The two files and how they connect
@@ -324,7 +323,7 @@ The function lives in one Go package (`package main`) split across two files:
 | [fn.go](xtenantargo/fn.go) | **The handler.** Defines the `Function` type and its `RunFunction` method. |
 
 Because both files are `package main` in the same directory, they compile together as **one
-program** — `main.go` can reference `Function` from `fn.go` with no import.
+program**; `main.go` can reference `Function` from `fn.go` with no import.
 
 ### Step 1 — Register (the single line that links the two files)
 
@@ -343,7 +342,7 @@ return function.Serve(&Function{log: log},   // <-- the handoff
 - Handing it to `function.Serve` **registers** it as the gRPC handler. Internally the SDK does the
   gRPC equivalent of `RegisterFunctionRunnerServiceServer(server, yourFunction)`.
 
-This one expression is the *entire* connection between main.go and fn.go. main.go never calls
+This one expression is the *entire* connection between `main.go` and `fn.go`. `main.go` never calls
 `RunFunction` itself.
 
 ### Step 2 — Open the socket
@@ -355,7 +354,7 @@ Deployment. The mTLS options wire in the certificates so only Crossplane can con
 ### Step 3 — Block
 
 `function.Serve(...)` does not return. `Run()` parks on it, the process stays alive, and the pod
-keeps running — waiting for Crossplane to call.
+keeps running; waiting for Crossplane to call.
 
 ### The handler that gets called: `RunFunction`
 
@@ -379,7 +378,7 @@ func (f *Function) RunFunction(
 
 - Embedding `UnimplementedFunctionRunnerServiceServer` gives `Function` default implementations of
   every method the gRPC service requires, so it satisfies the interface. You then **override only**
-  `RunFunction` — the one method that matters.
+  `RunFunction`; the one method that matters.
 - The `RunFunction` signature is fixed by the gRPC contract (exact name and types), which is how
   gRPC knows to route incoming calls to it.
 
