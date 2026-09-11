@@ -33,7 +33,7 @@ function's `RunFunction` and repeated per resource. The consequences:
 ### What it looks like without the module
 
 One child resource, inlined into `RunFunction`; and this block repeats,
-copy-pasted, for every resource:
+copy-pasted, for every child resource:
 
 ```go
 // --- ApplicationSet: deserialize observed ---
