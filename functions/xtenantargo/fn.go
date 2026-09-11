@@ -4,6 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rezakaramad/crosskit/functions/xtenantargo/argocd"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantargo/input/v1beta1"
+	"github.com/rezakaramad/crosskit/functions/xtenantargo/resources"
+	"github.com/rezakaramad/crosskit/modules/composer"
+	"github.com/rezakaramad/crosskit/types/xtenantargo"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
@@ -11,27 +18,23 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
-	"github.com/rezakaramad/crosskit/functions/xtenantargo/argocd"
-	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantargo/input/v1beta1"
-	"github.com/rezakaramad/crosskit/functions/xtenantargo/resources"
-	"github.com/rezakaramad/crosskit/modules/composer"
-	"github.com/rezakaramad/crosskit/types/xtenantargo"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Function is the gRPC server that Crossplane calls to render tenant resources.
 type Function struct {
+	// Generated from Crossplane's protobuf service definition.
 	fnv1.UnimplementedFunctionRunnerServiceServer
+
 	log logging.Logger
 }
 
-func init() {
-	must := func(err error) {
-		if err != nil {
-			panic(err)
-		}
+// NewFunction creates a Function and registers the ArgoCD types with the
+// composed resource scheme so they can be marshalled during reconciliation.
+func NewFunction(log logging.Logger) (*Function, error) {
+	if err := argocd.AddToScheme(composed.Scheme); err != nil {
+		return nil, errors.Wrap(err, "cannot register ArgoCD types with the scheme")
 	}
-	must(argocd.AddToScheme(composed.Scheme))
+	return &Function{log: log}, nil
 }
 
 // InternalErrorResponse marks the function response as fatally failed due to an internal error.
