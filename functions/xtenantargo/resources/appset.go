@@ -1,28 +1,33 @@
+// Package resources implements the composers that the Crossplane function uses
+// to build and reconcile the child resources.
 package resources
+
+// This file describes one child resource (an Argo CD ApplicationSet) as a "composer":
+// A composer is an object that knows how to produce and monitor exactly one composed (child) resource of the XR.
 
 import (
 	"fmt"
 
-	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/rezakaramad/crosskit/functions/xtenantargo/argocd"
 	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantargo/input/v1beta1"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/crossplane/function-sdk-go/resource"
 )
+
+const tenantLabelKey = "platform.talktorubberduck/tenant"
 
 // ArgoCDApplicationSet composes the Argo CD ApplicationSet that deploys the
 // tenant's platform charts to the management and workload clusters.
-const tenantLabelKey = "platform.talktorubberduck/tenant"
-
 type ArgoCDApplicationSet struct {
 	XComposer
 	ObservedResource *argocd.ApplicationSet
 }
 
-// NewArgoCDApplicationSet creates a new ArgoCDApplicationSet composer. It looks
-// up the observed ApplicationSet resource and deserializes it for the readiness
-// check. Returns an error if the observed resource exists but cannot be
-// deserialized.
+// NewArgoCDApplicationSet creates a new ArgoCDApplicationSet composer.
+// It looks up the observed ApplicationSet resource and deserializes it for the readiness check.
+// Returns an error if the observed resource exists but cannot be deserialized.
 func NewArgoCDApplicationSet(f XContext) (*ArgoCDApplicationSet, error) {
 	resourceName := resource.Name(fmt.Sprintf("applicationset-argocd-%s", f.XR.Name))
 	observedStructured, err := composer.ConvertObserved[argocd.ApplicationSet](f.Observed, resourceName)
@@ -42,11 +47,7 @@ func NewArgoCDApplicationSet(f XContext) (*ArgoCDApplicationSet, error) {
 
 // ComposeDesiredResource tells Crossplane what resource we want to create/update in the cluster and how to check if it's ready.
 func (r *ArgoCDApplicationSet) ComposeDesiredResource() (*composer.DesiredResource, error) {
-	resource, err := r.createResource()
-	if err != nil {
-		return nil, err
-	}
-	return r.ComposeDesiredResourceFrom(resource)
+	return r.ComposeDesiredResourceFrom(r.createResource())
 }
 
 // IsReady returns true when the ApplicationSet controller has finished
@@ -67,7 +68,7 @@ func (r *ArgoCDApplicationSet) IsReady() bool {
 // createResource constructs the two-generator ApplicationSet for the tenant:
 // a list generator for the management cluster app and a clusters generator for
 // the per-environment workload cluster apps.
-func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) {
+func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 	xr := r.FunctionContext.XR
 	defaults := r.FunctionContext.Defaults
 
@@ -158,7 +159,7 @@ func (r *ArgoCDApplicationSet) createResource() (*argocd.ApplicationSet, error) 
 				{JSONPointers: []string{"/spec/syncPolicy"}},
 			},
 		},
-	}, nil
+	}
 }
 
 // managementSource builds the ApplicationSource for the management generator,
@@ -188,11 +189,6 @@ func managementSource(m inputv1beta1.ManagementConfig, tenant, shortName string)
 // workloadSource builds the ApplicationSource for the workload generator,
 // including the tenant identity and optional Helm configuration.
 func workloadSource(w inputv1beta1.WorkloadConfig, tenant, shortName string) *argocd.ApplicationSource {
-	src := &argocd.ApplicationSource{
-		RepoURL:        w.RepoURL,
-		Path:           w.Path,
-		TargetRevision: w.TargetRevision,
-	}
 	helm := &argocd.HelmSource{
 		ValueFiles: w.Helm.ValueFiles,
 		Parameters: []argocd.HelmParameter{
@@ -206,6 +202,10 @@ func workloadSource(w inputv1beta1.WorkloadConfig, tenant, shortName string) *ar
 			Value: p.Value,
 		})
 	}
-	src.Helm = helm
-	return src
+	return &argocd.ApplicationSource{
+		RepoURL:        w.RepoURL,
+		Path:           w.Path,
+		TargetRevision: w.TargetRevision,
+		Helm:           helm,
+	}
 }

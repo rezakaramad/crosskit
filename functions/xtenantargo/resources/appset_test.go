@@ -49,10 +49,7 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	}
 	r := &ArgoCDApplicationSet{XComposer: XComposer{FunctionContext: XContext{XR: xr, Defaults: testInput()}}}
 
-	got, err := r.createResource()
-	if err != nil {
-		t.Fatalf("createResource() error = %v", err)
-	}
+	got := r.createResource()
 
 	// --- metadata ---
 	if got.Name != "pillow-factory" {

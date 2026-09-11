@@ -21,20 +21,20 @@ type CLI struct {
 // Run this Function.
 func (c *CLI) Run() error {
 	// github.com/crossplane/function-sdk-go
-	// 		|
-	// 		+-- package name: function
-	//      	|
-	//          +-- NewLogger(...)
+	// |→ package name: function
+	// |→ NewLogger(...)
 	log, err := function.NewLogger(c.Debug)
 	if err != nil {
 		return err
 	}
 
+	// Construct the Function and register the types with the scheme.
 	f, err := NewFunction(log)
 	if err != nil {
 		return err
 	}
 
+	// Register the function as the gRPC server handler and starts the server.
 	return function.Serve(f,
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),
