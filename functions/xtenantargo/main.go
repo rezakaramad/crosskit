@@ -20,6 +20,11 @@ type CLI struct {
 
 // Run this Function.
 func (c *CLI) Run() error {
+	// github.com/crossplane/function-sdk-go
+	// 		|
+	// 		+-- package name: function
+	//      	|
+	//          +-- NewLogger(...)
 	log, err := function.NewLogger(c.Debug)
 	if err != nil {
 		return err
