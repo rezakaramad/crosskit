@@ -5,21 +5,24 @@ import (
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	commonv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
-	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/crossplane/function-sdk-go/resource"
 )
 
 // VaultGroup composes a Kubernetes Entra ID Group for the tenant.
+// For every child resource, we define a struct that encapsulates the observed resource
+// and the desired resource specification.
 type VaultGroup struct {
 	XComposer
 	ObservedResource *groupsv1beta1.Group
 }
 
-// NewVaultGroup creates a new VaultGroup composer. It looks up the observed VaultGroup
-// resource and deserializes it for readiness check. Returns an error if the
-// observed resource exists but cannot be deserialized.
+// NewVaultGroup creates a new VaultGroup composer. It looks up the observed Group resource
+// and deserializes it for readiness check.
+// Returns an error if the observed resource exists but cannot be deserialized.
 func NewVaultGroup(f XContext) (composer.ComposableResource, error) {
 	resourceName := resource.Name(fmt.Sprintf("group-vault-%s", f.XR.Name))
 	observedStructured, err := composer.ConvertObserved[groupsv1beta1.Group](f.Observed, resourceName)
@@ -40,7 +43,7 @@ func NewVaultGroup(f XContext) (composer.ComposableResource, error) {
 // ComposeDesiredResource builds the desired VaultGroup and wraps it as a
 // DesiredResource for inclusion in the function response.
 func (s *VaultGroup) ComposeDesiredResource() (*composer.DesiredResource, error) {
-	return s.ComposeDesiredResourceFrom(s.CreateResource())
+	return s.ComposeDesiredResourceFrom(s.createResource())
 }
 
 // IsReady returns true if the observed resource has a Ready condition with status True.
@@ -56,8 +59,8 @@ func (s *VaultGroup) IsReady() bool {
 	return false
 }
 
-// CreateResource constructs the Kubernetes Group spec for the tenant.
-func (s *VaultGroup) CreateResource() *groupsv1beta1.Group {
+// createResource constructs the Kubernetes Group spec for the tenant.
+func (s *VaultGroup) createResource() *groupsv1beta1.Group {
 	xr := s.FunctionContext.XR
 	defaults := s.FunctionContext.Defaults
 

@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestVaultAppRole_CreateResource(t *testing.T) {
+func TestVaultAppRole_createResource(t *testing.T) {
 	xr := &xtenantentra.XTenantEntra{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
 		Spec:       xtenantentra.XTenantEntraSpec{},
@@ -21,7 +21,7 @@ func TestVaultAppRole_CreateResource(t *testing.T) {
 	}
 	r := &VaultAppRole{XComposer: XComposer{FunctionContext: XContext{XR: xr, Defaults: d}}}
 
-	got := r.CreateResource()
+	got := r.createResource()
 
 	if got.Name != "app-role-vault-pillow-factory" {
 		t.Errorf("metadata.name = %q, want %q", got.Name, "app-role-vault-pillow-factory")

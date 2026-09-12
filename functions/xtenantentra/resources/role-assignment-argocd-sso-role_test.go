@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestArgoCDSsoRoleAssignment_CreateResource(t *testing.T) {
+func TestArgoCDSsoRoleAssignment_createResource(t *testing.T) {
 	xr := &xtenantentra.XTenantEntra{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
 		Spec:       xtenantentra.XTenantEntraSpec{},
@@ -31,7 +31,7 @@ func TestArgoCDSsoRoleAssignment_CreateResource(t *testing.T) {
 		},
 	}
 
-	got := r.CreateResource()
+	got := r.createResource()
 
 	if got.Name != "acl-plt-argocd-sso-role-pillow-factory" {
 		t.Errorf("metadata.name = %q, want %q", got.Name, "acl-plt-argocd-sso-role-pillow-factory")

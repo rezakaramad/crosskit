@@ -32,33 +32,35 @@ type FunctionContext[XR any, D any] struct {
 // It is returned by each composer and used to populate the function response.
 type DesiredResource struct {
 	Name     resource.Name
-	Resource *resource.DesiredComposed
+	Resource *resource.DesiredComposed // Child resource that this composer manages
 }
 
-// ComposableResource is the interface that all resource composers must implement.
-// It provides methods to compose the desired resource, check its observed
-// readiness, and return its condition type for status reporting.
+// ComposableResource is the interface that all child resource composers must implement.
+// It provides methods to compose the desired resource, check its observed readiness,
+// and return its condition type for status reporting.
 type ComposableResource interface {
-	// ComposeDesiredResource builds and returns the desired resource.
-	// Returns nil if the resource should not be created (e.g. optional field not set).
+	// ComposeDesiredResource builds and returns the desired child resource.
+	// Returns nil if the child resource should not be created (e.g. optional field not set).
 	ComposeDesiredResource() (*DesiredResource, error)
 
-	// IsReady checks the observed resource state and returns true if the
-	// resource is available and healthy.
+	// IsReady checks the observed child resource state and returns true if the
+	// child resource is available and healthy.
 	IsReady() bool
 
 	// GetConditionType returns the condition type string used when setting
-	// status conditions on the composite resource (e.g. "DeploymentReady").
+	// status conditions on the composite resource for the child resource (e.g. "DeploymentReady").
 	GetConditionType() string
 
 	// GetConnectionDetails returns key-value pairs to expose in the composed
-	// connection secret, sourced from the observed resource state. Returns nil
-	// if the resource has no connection details to contribute.
+	// connection Secret, sourced from the observed resource state.
+	// Returns nil if the resource has no connection details to contribute.
 	GetConnectionDetails() map[string]string
 }
 
-// BaseComposer provides shared fields and methods for all resource composers.
+// BaseComposer provides shared fields and methods for all child resource composers.
 // Embed this in concrete composer structs to inherit common functionality.
+// With this embedding, every child resource composer will have access to the function context,
+// the resource name, and the condition type for status reporting.
 type BaseComposer[XR any, D any] struct {
 	FunctionContext FunctionContext[XR, D]
 	ResourceName    resource.Name
@@ -71,42 +73,53 @@ func (b *BaseComposer[XR, D]) GetConditionType() string {
 	return b.ConditionType
 }
 
-// ComposeDesiredResourceFrom converts a structured Kubernetes resource into a
-// DesiredResource. It handles typed nil pointers (e.g. a *corev1.Service that
-// is nil) by returning nil, signaling that the resource should be skipped.
+// ComposeDesiredResourceFrom converts a structured Kubernetes resource into a DesiredResource.
+// It handles typed nil pointers (e.g. a *corev1.Service that is nil) by returning nil,
+// signaling that the resource should be skipped.
+// This function receives a typed Go object representing the desired Kubernetes child resource.
 func (b *BaseComposer[XR, D]) ComposeDesiredResourceFrom(structuredResource runtime.Object) (*DesiredResource, error) {
 	v := reflect.ValueOf(structuredResource)
+	// If the resource object is a nil pointer, do not create it
 	if structuredResource == nil || (v.Kind() == reflect.Pointer && v.IsNil()) {
 		return nil, nil
 	}
 
+	// Convert the structured resource into a composed resource that Crossplane can manage.
 	composed, err := composed.From(structuredResource)
 	if err != nil {
+		// If conversion fails, log a fatal error and return it.
 		response.Fatal(b.FunctionContext.FunctionResponse,
 			errors.Wrapf(err, "cannot convert %T to composed resource", structuredResource))
 		return nil, err
 	}
 
+	// Return the desired resource wrapping the composed child resource.
+	// We set the initial readiness state to false. Later, the readiness
+	// will be updated based on the actual readiness of the resource.
 	return &DesiredResource{
 		Name:     b.ResourceName,
 		Resource: &resource.DesiredComposed{Resource: composed, Ready: resource.ReadyFalse},
 	}, nil
 }
 
-// GetConnectionDetails returns key-value pairs to expose in the composed
-// connection secret. The base implementation returns nil; embed and override
-// to contribute connection details.
+// GetConnectionDetails returns key-value pairs to expose in the composed connection secret.
+// The base implementation returns nil; embed and override to contribute connection details.
 func (b *BaseComposer[XR, D]) GetConnectionDetails() map[string]string {
 	return nil
 }
 
-// ConvertObserved looks up the observed resource by name and deserializes it
-// into the specified type T. Returns nil if the resource has not yet been
-// observed (e.g. on first reconciliation).
-func ConvertObserved[T any](observed map[resource.Name]resource.ObservedComposed, resourceName resource.Name) (*T, error) {
+// ConvertObserved looks up the observed resource by its name in the map of observed composed resources
+// and deserializes it into the specified type T.
+// Returns nil if the resource has not yet been observed (e.g. on first reconciliation).
+// Returns a pointer to whatever type the caller specifies like *corev1.Service.
+func ConvertObserved[T any](
+	observed map[resource.Name]resource.ObservedComposed,
+	resourceName resource.Name,
+) (*T, error) {
 	if obs, exists := observed[resourceName]; exists {
 		var observedResource T
 
+		// Convert the observed child resource’s JSON-like data into the requested Go type.
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 			obs.Resource.UnstructuredContent(),
 			&observedResource,

@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestArgoCDGroup_CreateResource(t *testing.T) {
+func TestArgoCDGroup_createResource(t *testing.T) {
 	xr := &xtenantentra.XTenantEntra{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
 		Spec:       xtenantentra.XTenantEntraSpec{},
@@ -22,7 +22,7 @@ func TestArgoCDGroup_CreateResource(t *testing.T) {
 	}
 	r := &ArgoCDGroup{XComposer: XComposer{FunctionContext: XContext{XR: xr, Defaults: d}}}
 
-	got := r.CreateResource()
+	got := r.createResource()
 
 	if got.Name != "acl-plt-argocd-tenant-pillow-factory" {
 		t.Errorf("metadata.name = %q, want %q", got.Name, "acl-plt-argocd-tenant-pillow-factory")

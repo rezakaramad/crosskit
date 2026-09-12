@@ -25,7 +25,14 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	return function.Serve(&Function{log: log},
+	// Construct the Function and register the types with the scheme.
+	f, err := NewFunction(log)
+	if err != nil {
+		return err
+	}
+
+	// Register the function as the gRPC server handler and starts the server.
+	return function.Serve(f,
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),

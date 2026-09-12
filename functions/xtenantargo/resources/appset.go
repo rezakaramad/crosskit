@@ -20,6 +20,8 @@ const tenantLabelKey = "platform.talktorubberduck/tenant"
 
 // ArgoCDApplicationSet composes the Argo CD ApplicationSet that deploys the
 // tenant's platform charts to the management and workload clusters.
+// For every child resource, we define a struct that encapsulates the observed resource
+// and the desired resource specification.
 type ArgoCDApplicationSet struct {
 	XComposer
 	ObservedResource *argocd.ApplicationSet
@@ -78,7 +80,8 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 	envRef := labelRef(defaults.Workload.TargetClusters.EnvironmentKey)
 	labels := map[string]string{tenantLabelKey: tenant}
 
-	managementGenerator := argocd.ApplicationSetGenerator{
+	// Management cluster ApplicationSet generator.
+	m := argocd.ApplicationSetGenerator{
 		List: &argocd.ListGenerator{
 			Elements: []map[string]string{{"cluster": "management"}},
 			Template: argocd.ApplicationSetTemplate{
@@ -87,7 +90,14 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 				},
 				Spec: argocd.ApplicationSpec{
 					Project: defaults.Project,
-					Source:  managementSource(defaults.Management, tenant, shortName),
+					Source: applicationSource(
+						defaults.Management.RepoURL,
+						defaults.Management.Path,
+						defaults.Management.TargetRevision,
+						defaults.Management.Helm,
+						tenant,
+						shortName,
+					),
 					Destination: argocd.ApplicationDestination{
 						Name:      "in-cluster",
 						Namespace: defaults.Management.TargetNamespace,
@@ -97,7 +107,8 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 		},
 	}
 
-	workloadGenerator := argocd.ApplicationSetGenerator{
+	// Workload cluster ApplicationSet generator.
+	w := argocd.ApplicationSetGenerator{
 		Clusters: &argocd.ClusterGenerator{
 			Selector: metav1.LabelSelector{
 				MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -120,7 +131,14 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 				},
 				Spec: argocd.ApplicationSpec{
 					Project: defaults.Project,
-					Source:  workloadSource(defaults.Workload, tenant, shortName),
+					Source: applicationSource(
+						defaults.Workload.RepoURL,
+						defaults.Workload.Path,
+						defaults.Workload.TargetRevision,
+						defaults.Workload.Helm,
+						tenant,
+						shortName,
+					),
 					Destination: argocd.ApplicationDestination{
 						Name:      "{{ .name }}",
 						Namespace: tenant,
@@ -139,7 +157,7 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 		Spec: argocd.ApplicationSetSpec{
 			GoTemplate:        true,
 			GoTemplateOptions: []string{"missingkey=error"},
-			Generators:        []argocd.ApplicationSetGenerator{managementGenerator, workloadGenerator},
+			Generators:        []argocd.ApplicationSetGenerator{m, w},
 			Template: argocd.ApplicationSetTemplate{
 				ApplicationSetTemplateMeta: argocd.ApplicationSetTemplateMeta{
 					Labels: labels,
@@ -162,50 +180,32 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 	}
 }
 
-// managementSource builds the ApplicationSource for the management generator,
-// always injecting tenant identity and any additional helm config from the input.
-func managementSource(m inputv1beta1.ManagementConfig, tenant, shortName string) *argocd.ApplicationSource {
+// applicationSource builds an ApplicationSource with tenant identity and Helm configuration.
+func applicationSource(
+	repoURL string,
+	path string,
+	targetRevision string,
+	helmConfig inputv1beta1.WorkloadHelmConfig,
+	tenant string,
+	shortName string,
+) *argocd.ApplicationSource {
 	helm := &argocd.HelmSource{
-		ValueFiles: m.Helm.ValueFiles,
+		ValueFiles: helmConfig.ValueFiles,
 		Parameters: []argocd.HelmParameter{
 			{Name: "tenant.name", Value: tenant},
 			{Name: "tenant.tenantShortName", Value: shortName},
 		},
 	}
-	for _, p := range m.Helm.Parameters {
+	for _, p := range helmConfig.Parameters {
 		helm.Parameters = append(helm.Parameters, argocd.HelmParameter{
 			Name:  p.Name,
 			Value: p.Value,
 		})
 	}
 	return &argocd.ApplicationSource{
-		RepoURL:        m.RepoURL,
-		Path:           m.Path,
-		TargetRevision: m.TargetRevision,
-		Helm:           helm,
-	}
-}
-
-// workloadSource builds the ApplicationSource for the workload generator,
-// including the tenant identity and optional Helm configuration.
-func workloadSource(w inputv1beta1.WorkloadConfig, tenant, shortName string) *argocd.ApplicationSource {
-	helm := &argocd.HelmSource{
-		ValueFiles: w.Helm.ValueFiles,
-		Parameters: []argocd.HelmParameter{
-			{Name: "tenant.name", Value: tenant},
-			{Name: "tenant.tenantShortName", Value: shortName},
-		},
-	}
-	for _, p := range w.Helm.Parameters {
-		helm.Parameters = append(helm.Parameters, argocd.HelmParameter{
-			Name:  p.Name,
-			Value: p.Value,
-		})
-	}
-	return &argocd.ApplicationSource{
-		RepoURL:        w.RepoURL,
-		Path:           w.Path,
-		TargetRevision: w.TargetRevision,
+		RepoURL:        repoURL,
+		Path:           path,
+		TargetRevision: targetRevision,
 		Helm:           helm,
 	}
 }

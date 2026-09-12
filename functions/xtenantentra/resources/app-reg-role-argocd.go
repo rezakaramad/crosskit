@@ -5,22 +5,25 @@ import (
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	commonv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
-	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	applicationsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/applications/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/crossplane/function-sdk-go/resource"
 )
 
-// ArgoCDAppRole composes an Azure AD AppRole on the ArgoCD app registration
-// granting access to the tenant.
+// ArgoCDAppRole composes an Azure AD AppRole on the ArgoCD app registration granting access to the tenant.
+// For every child resource, we define a struct that encapsulates the observed resource
+// and the desired resource specification.
 type ArgoCDAppRole struct {
 	XComposer
+
 	ObservedResource *applicationsv1beta1.AppRole
 }
 
 // NewArgoCDAppRole creates a new ArgoCDAppRole composer. It looks up the
-// observed AppRole resource and deserializes it for readiness check. Returns an
-// error if the observed resource exists but cannot be deserialized.
+// observed AppRole resource and deserializes it for readiness check.
+// Returns an error if the observed resource exists but cannot be deserialized.
 func NewArgoCDAppRole(f XContext) (composer.ComposableResource, error) {
 	resourceName := resource.Name(fmt.Sprintf("app-role-argocd-%s", f.XR.Name))
 	observedStructured, err := composer.ConvertObserved[applicationsv1beta1.AppRole](f.Observed, resourceName)
@@ -41,7 +44,7 @@ func NewArgoCDAppRole(f XContext) (composer.ComposableResource, error) {
 // ComposeDesiredResource builds the desired ArgoCDAppRole and wraps it as a
 // DesiredResource for inclusion in the function response.
 func (a *ArgoCDAppRole) ComposeDesiredResource() (*composer.DesiredResource, error) {
-	return a.ComposeDesiredResourceFrom(a.CreateResource())
+	return a.ComposeDesiredResourceFrom(a.createResource())
 }
 
 // IsReady returns true if the observed resource has a Ready condition with status True.
@@ -57,8 +60,8 @@ func (a *ArgoCDAppRole) IsReady() bool {
 	return false
 }
 
-// CreateResource constructs the Kubernetes AppRole spec for the tenant.
-func (a *ArgoCDAppRole) CreateResource() *applicationsv1beta1.AppRole {
+// createResource constructs the Kubernetes AppRole spec for the tenant.
+func (a *ArgoCDAppRole) createResource() *applicationsv1beta1.AppRole {
 	xr := a.FunctionContext.XR
 	defaults := a.FunctionContext.Defaults
 

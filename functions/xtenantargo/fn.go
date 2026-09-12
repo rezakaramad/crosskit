@@ -38,8 +38,8 @@ func NewFunction(log logging.Logger) (*Function, error) {
 	return &Function{log: log}, nil
 }
 
-// buildComposers constructs all resource composers for the XTenantArgo
-// composition, returning the full set of composers to run during reconciliation.
+// buildComposers constructs all resource composers for the XExample composition,
+// returning the full set of resources to compose during reconciliation.
 func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource, error) {
 	argocdApplicationSet, err := resources.NewArgoCDApplicationSet(fnContext)
 	if err != nil {
@@ -61,7 +61,7 @@ func (f *Function) RunFunction(
 
 	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 
-	// Initialize the function response with a default TTL.
+	// Create an initially empty function response, initialized with the request's metadata and a default TTL.
 	rsp := response.To(req, response.DefaultTTL)
 
 	// Initialize an empty Input to fill in.
@@ -72,7 +72,7 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// Get the observed composed resources from the request.
+	// Get the observed composed resources (the child resources) from the request.
 	observed, err := request.GetObservedComposedResources(req)
 	if err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot get observed resources from %T", req))
@@ -94,7 +94,10 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// Convert the observed composite resource to the strongly typed XTenantArgo struct.
+	// Convert the observed composite resource (the XR itself) to the strongly typed XTenantArgo struct.
+	// xr - Right before this, we have retrieved the Crossplane's unstructured representation of
+	// the composite resource.
+	// xd - Now we convert it to the strongly typed Go representation.
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		xr.Resource.UnstructuredContent(),
 		&xd,

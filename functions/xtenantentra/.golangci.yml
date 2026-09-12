@@ -97,6 +97,9 @@ linters:
     # against idiomatic Go programming, which encourages this approach - e.g.
     # to scope errors.
     - noinlineerr
+    - gomodguard
+  enable:
+    - gomodguard_v2
   settings:
     depguard:
       rules:

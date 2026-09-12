@@ -5,17 +5,21 @@ import (
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	commonv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
-	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	appv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/app/v1beta1"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/crossplane/function-sdk-go/resource"
 )
 
 // VaultSsoRoleAssignment assigns the tenant-specific Vault AppRole on the
 // Vault Enterprise Application to the tenant's Vault ACL group.
+// For every child resource, we define a struct that encapsulates the observed resource
+// and the desired resource specification.
 type VaultSsoRoleAssignment struct {
 	XComposer
+
 	ObservedResource *appv1beta1.RoleAssignment
 	Group            *groupsv1beta1.Group
 }
@@ -58,7 +62,7 @@ func (s *VaultSsoRoleAssignment) ComposeDesiredResource() (*composer.DesiredReso
 	if s.Group == nil || s.Group.Status.AtProvider.ObjectID == nil {
 		return nil, nil
 	}
-	return s.ComposeDesiredResourceFrom(s.CreateResource())
+	return s.ComposeDesiredResourceFrom(s.createResource())
 }
 
 // IsReady returns true if the observed resource has a Ready condition with status True.
@@ -74,8 +78,8 @@ func (s *VaultSsoRoleAssignment) IsReady() bool {
 	return false
 }
 
-// CreateResource constructs the Kubernetes RoleAssignment spec for the tenant.
-func (s *VaultSsoRoleAssignment) CreateResource() *appv1beta1.RoleAssignment {
+// createResource constructs the Kubernetes RoleAssignment spec for the tenant.
+func (s *VaultSsoRoleAssignment) createResource() *appv1beta1.RoleAssignment {
 	xr := s.FunctionContext.XR
 	defaults := s.FunctionContext.Defaults
 

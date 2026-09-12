@@ -119,6 +119,11 @@ and `GetConnectionDetails`
   `Observed` (current cluster state), `FunctionResponse` (where results/errors
   go), `XR` (the parent), `Defaults` (the parsed input), `Log`. The type
   parameters `XR` and `D` are pinned per-function (e.g. via an `XContext` alias).
+
+So the pattern is: **pass one shared context (with the full observed map + XR +
+defaults); let each composer select and convert what it needs.** It centralizes
+the request-parsing logic and keeps each resource's knowledge self-contained.
+
 - **`DesiredResource`**: the output unit: a `Name` plus the desired
   `*resource.DesiredComposed`. A composer produces one, or `nil` to mean
   "don't create it".
