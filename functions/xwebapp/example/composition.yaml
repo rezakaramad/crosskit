@@ -1,0 +1,28 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xwebapp
+spec:
+  compositeTypeRef:
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XWebApp
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xwebapp
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: Input
+
+        # Applied to every pod; developers cannot set these.
+        tolerations:
+          - key: dedicated
+            operator: Equal
+            value: web
+            effect: NoSchedule
+
+        # The Gateway HTTPRoutes attach to. Both default to the XR's namespace.
+        gateway:
+          name: shared-gateway
+          namespace: gateway-system

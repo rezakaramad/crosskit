@@ -1,0 +1,37 @@
+apiVersion: idp.rezakara.demo/v1beta1
+kind: XWebApp
+metadata:
+  name: object-lister
+  namespace: acme
+  labels:
+    team: storage
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        tier: backend
+    spec:
+      initContainers:
+        - name: migrate
+          image: europe-docker.pkg.dev/my-project/apps/migrate:v2
+          command: ["/migrate", "up"]
+      containers:
+        - name: app
+          image: europe-docker.pkg.dev/my-project/apps/object-lister:v1.0.0
+          args: ["--log-level=info"]
+          # Ports must be named; the names are used by the Service and NetworkPolicies.
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+  platformCapabilities:
+    hostname: acme.dev.example.com
