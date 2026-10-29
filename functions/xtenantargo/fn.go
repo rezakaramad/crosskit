@@ -10,6 +10,7 @@ import (
 	"github.com/rezakaramad/crosskit/modules/composer"
 	"github.com/rezakaramad/crosskit/types/xtenantargo"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -28,14 +29,11 @@ type Function struct {
 	log logging.Logger
 }
 
-// NewFunction creates a Function and registers the ArgoCD types with the
-// composed resource scheme so they can be marshalled during reconciliation.
+// init registers the ArgoCD types with the composed resource scheme so they can be
+// marshalled during reconciliation; a failure is a programming error, so it panics.
 // See [Schema Registration](../SchemeRegistration.md).
-func NewFunction(log logging.Logger) (*Function, error) {
-	if err := argocd.AddToScheme(composed.Scheme); err != nil {
-		return nil, errors.Wrap(err, "cannot register ArgoCD types with the scheme")
-	}
-	return &Function{log: log}, nil
+func init() {
+	utilruntime.Must(argocd.AddToScheme(composed.Scheme))
 }
 
 // buildComposers constructs all resource composers for the XExample composition,

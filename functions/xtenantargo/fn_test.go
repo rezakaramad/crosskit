@@ -89,10 +89,7 @@ func TestRunFunction(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			f, err := NewFunction(logging.NewNopLogger())
-			if err != nil {
-				t.Fatalf("NewFunction() error: %v", err)
-			}
+			f := &Function{log: logging.NewNopLogger()}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 			if diff := cmp.Diff(tc.want.err, err, cmpopts.EquateErrors()); diff != "" {
 				t.Errorf("%s\nRunFunction() error -want +got:\n%s", tc.reason, diff)

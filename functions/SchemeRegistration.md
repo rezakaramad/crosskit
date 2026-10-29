@@ -43,7 +43,7 @@ If you never register, the dictionary has no entry for that type. So when the ru
 - errors with something like "no kind is registered for the type argocd.ApplicationSet", or
 - produces a blob with an **empty** `apiVersion`/`kind`, which Crossplane rejects.
 
-That's why the constructor calls `AddToScheme` **before** the function ever handles a request; it populates the dictionary up front.
+That's why `init()` calls `AddToScheme` **before** the function ever handles a request; it populates the dictionary up front.
 
 ## The mental model to keep
 

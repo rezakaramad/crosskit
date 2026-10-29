@@ -12,6 +12,7 @@ import (
 	applicationsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/applications/v1beta1"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/logging"
@@ -30,23 +31,13 @@ type Function struct {
 	log logging.Logger
 }
 
-// NewFunction creates a Function and registers the ArgoCD types with the
-// composed resource scheme so they can be marshalled during reconciliation.
+// init registers the AzureAD types with the composed resource scheme so they can be
+// marshalled during reconciliation; a failure is a programming error, so it panics.
 // See [Schema Registration](../SchemeRegistration.md).
-func NewFunction(log logging.Logger) (*Function, error) {
-	if err := appv1beta1.AddToScheme(composed.Scheme); err != nil {
-		return nil, errors.Wrap(err, "cannot register AzureAD app types with the scheme")
-	}
-
-	if err := applicationsv1beta1.AddToScheme(composed.Scheme); err != nil {
-		return nil, errors.Wrap(err, "cannot register AzureAD application types with the scheme")
-	}
-
-	if err := groupsv1beta1.AddToScheme(composed.Scheme); err != nil {
-		return nil, errors.Wrap(err, "cannot register AzureAD group types with the scheme")
-	}
-
-	return &Function{log: log}, nil
+func init() {
+	utilruntime.Must(appv1beta1.AddToScheme(composed.Scheme))
+	utilruntime.Must(applicationsv1beta1.AddToScheme(composed.Scheme))
+	utilruntime.Must(groupsv1beta1.AddToScheme(composed.Scheme))
 }
 
 // InternalErrorResponse marks the function response as fatally failed due to an internal error.
