@@ -24,6 +24,7 @@ type ResourceMeta struct {
 	Plural                string // Plural name for the XRD
 	Scope                 string // XRD scope: "Namespaced" or "Cluster" (optional, defaults to "Namespaced")
 	DefaultCompositionRef string // Name of the default Composition to use when none is specified on the XR
+	HiddenPaths           []string // Dotted schema paths (e.g. spec.template.spec.tolerations) removed from the XRD
 }
 
 // BuildCompositeResourceDefinition constructs a Crossplane CompositeResourceDefinition from a ResourceMeta.
@@ -79,6 +80,12 @@ func BuildCompositeResourceDefinition(resource ResourceMeta) (*apiextensionsv2.C
 	// Include the 'status' schema if it exists.
 	if statusSchema, ok := typeInfo.Schema.Properties["status"]; ok {
 		wrappedSchema.Properties["status"] = statusSchema
+	}
+
+	for _, p := range resource.HiddenPaths {
+		if err := hideSchemaPath(&wrappedSchema, strings.Split(p, ".")); err != nil {
+			return nil, fmt.Errorf("hiding %q: %w", p, err)
+		}
 	}
 
 	// Marshal the wrapped schema into JSON bytes, which will be embedded in the XRD.

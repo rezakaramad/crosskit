@@ -51,6 +51,8 @@ func newCRDParser(packagePath string) (*crd.Parser, []*loader.Package, error) {
 	parser := &crd.Parser{
 		Collector: &markers.Collector{Registry: registry},
 		Checker:   &loader.TypeChecker{},
+		// Without this, nested metadata (e.g. pod template labels) is pruned by the API server.
+		GenerateEmbeddedObjectMeta: true,
 	}
 	crd.AddKnownTypes(parser)
 
