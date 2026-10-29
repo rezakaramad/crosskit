@@ -23,9 +23,20 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/rezakaramad/crosskit/modules/generator"
 )
+
+// stringList is a repeatable string flag.
+type stringList []string
+
+func (s *stringList) String() string { return strings.Join(*s, ",") }
+
+func (s *stringList) Set(v string) error {
+	*s = append(*s, v)
+	return nil
+}
 
 func main() {
 	pkg := flag.String("package", "", "Go import path of the package containing the XR type (required)")
@@ -36,6 +47,8 @@ func main() {
 	scope := flag.String("scope", "Namespaced", "XRD scope: Namespaced or Cluster")
 	defaultComposition := flag.String("default-composition", "", "Name of the default Composition (sets defaultCompositionRef)")
 	output := flag.String("output", "", "Write YAML to this file (default: stdout)")
+	var hide stringList
+	flag.Var(&hide, "hide", "Dotted schema path to remove from the XRD, e.g. spec.template.spec.tolerations (repeatable)")
 	flag.Parse()
 
 	if *pkg == "" || *typeName == "" || *group == "" {
@@ -53,6 +66,7 @@ func main() {
 		Plural:                *plural,
 		Scope:                 *scope,
 		DefaultCompositionRef: *defaultComposition,
+		HiddenPaths:           hide,
 	})
 	if err != nil {
 		log.Fatalf("generate XRD: %v", err)
