@@ -30,13 +30,13 @@ func TestRunFunction(t *testing.T) {
 		"project": "tenant-system",
 		"management": {
 			"repoURL": "https://github.com/talktorubberduckdev/platform-hub",
-			"path": "charts/tenant-management",
+			"path": "kubernetes/charts/tenant-management",
 			"targetRevision": "HEAD",
 			"targetNamespace": "tenant-system"
 		},
 		"workload": {
 			"repoURL": "https://github.com/talktorubberduckdev/platform-hub",
-			"path": "charts/tenant-workload",
+			"path": "kubernetes/charts/tenant-workload",
 			"targetRevision": "HEAD",
 			"helm": {
 				"valueFiles": ["values-plt-{{ index .metadata.labels \"argocd.rezakara.demo/environment\" }}.yaml"],

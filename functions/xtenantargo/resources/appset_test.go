@@ -14,13 +14,13 @@ func testInput() *inputv1beta1.Input {
 		Project: "tenant-system",
 		Management: inputv1beta1.ManagementConfig{
 			RepoURL:         "https://github.com/talktorubberduckdev/platform-hub",
-			Path:            "charts/tenant-management",
+			Path:            "kubernetes/charts/tenant-management",
 			TargetRevision:  "HEAD",
 			TargetNamespace: "tenant-system",
 		},
 		Workload: inputv1beta1.WorkloadConfig{
 			RepoURL:        "https://github.com/talktorubberduckdev/platform-hub",
-			Path:           "charts/tenant-workload",
+			Path:           "kubernetes/charts/tenant-workload",
 			TargetRevision: "HEAD",
 			Helm: inputv1beta1.WorkloadHelmConfig{
 				ValueFiles: []string{`values-plt-{{ index .metadata.labels "argocd.rezakara.demo/environment" }}.yaml`},
@@ -91,8 +91,8 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	if mgmtTmpl.Spec.Source == nil || mgmtTmpl.Spec.Source.RepoURL != "https://github.com/talktorubberduckdev/platform-hub" {
 		t.Errorf("management source.repoURL = %v", mgmtTmpl.Spec.Source)
 	}
-	if mgmtTmpl.Spec.Source.Path != "charts/tenant-management" {
-		t.Errorf("management source.path = %q, want charts/tenant-management", mgmtTmpl.Spec.Source.Path)
+	if mgmtTmpl.Spec.Source.Path != "kubernetes/charts/tenant-management" {
+		t.Errorf("management source.path = %q, want kubernetes/charts/tenant-management", mgmtTmpl.Spec.Source.Path)
 	}
 	if mgmtTmpl.Spec.Source.Helm == nil ||
 		len(mgmtTmpl.Spec.Source.Helm.Parameters) != 2 ||
@@ -135,8 +135,8 @@ func TestArgoCDApplicationSet_CreateResource(t *testing.T) {
 	if wlTmpl.Spec.Source.RepoURL != "https://github.com/talktorubberduckdev/platform-hub" {
 		t.Errorf("workload source.repoURL = %q", wlTmpl.Spec.Source.RepoURL)
 	}
-	if wlTmpl.Spec.Source.Path != "charts/tenant-workload" {
-		t.Errorf("workload source.path = %q, want charts/tenant-workload", wlTmpl.Spec.Source.Path)
+	if wlTmpl.Spec.Source.Path != "kubernetes/charts/tenant-workload" {
+		t.Errorf("workload source.path = %q, want kubernetes/charts/tenant-workload", wlTmpl.Spec.Source.Path)
 	}
 	if wlTmpl.Spec.Source.Helm == nil {
 		t.Fatal("workload source.helm is nil")

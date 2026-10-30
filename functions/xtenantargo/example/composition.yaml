@@ -21,14 +21,14 @@ spec:
         # The Application deployed to the management cluster.
         management:
           repoURL: https://github.com/talktorubberduckdev/platform-hub
-          path: charts/tenant-management
+          path: kubernetes/charts/tenant-management
           targetRevision: HEAD
           targetNamespace: tenant-system
 
         # The Applications deployed to the workload clusters.
         workload:
           repoURL: https://github.com/talktorubberduckdev/platform-hub
-          path: charts/tenant-workload
+          path: kubernetes/charts/tenant-workload
           targetRevision: HEAD
           helm:
             valueFiles:
