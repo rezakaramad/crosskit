@@ -1,7 +1,9 @@
 # How a Go program becomes a running server
 
-This doc explains, from the ground up, how a Go program "registers a handler, listens on a port,
-and serves requests forever." It starts with the idea as a **generic concept**, one that applies to
+This doc explains, from the ground up, how a Go program *registers a handler, listens on a port,
+and serves requests forever*. 
+
+It starts with the idea as a **generic concept**, one that applies to
 almost any server, then narrows the focus to how this repo implements it for Crossplane
 composition functions.
 
@@ -15,7 +17,7 @@ If you just read [CLI.md](CLI.md), that explained how the program *starts* (pars
 > **What is a "handler"?** A handler is just the piece of *your* code; a function or an object with
 > a method, that the framework calls to process one incoming request. It takes the request as input
 > and produces a response. You write the handler; the framework decides *when* to call it (e.g. once per
-> request). In this repo, the `Function` type has a `RunFunction` method that handles incoming requests.
+> request). In this repo, [the `Function` type](xtenantargo/fn.go#L25) has a `RunFunction` method that handles incoming requests.
 
 ### The core idea: you don't call your handler; the framework does
 
@@ -40,18 +42,27 @@ Almost every server, HTTP, gRPC, anything, does these three steps:
 
 #### 1. Register a handler
 
-**Registering** means telling the **server runtime** which object should handle requests for a
-particular service: *"when a request for this service arrives, call THIS object."* It's just wiring;
-nothing is called yet. (Here "server runtime" is the networking library doing the routing; the HTTP
-server's mux, or the gRPC server. In gRPC you register **per service**, binding a service defined in
-a `.proto` to a Go object that implements it, e.g.
-`RegisterFunctionRunnerServiceServer(server, yourFunction)`.)
+**Registering** means telling the server library which object should handle which requests: *"when a request for this service arrives, call THIS object."* It's just wiring; nothing is called yet.
+
+The "server library" is the code that receives requests and routes them to your handlers. For example, the `mux` in Go's `net/http`, or the server created by `grpc.NewServer()`.
+
+In gRPC you register per service, for example `RegisterFunctionRunnerServiceServer(server, yourFunction)`.
+
+```go
+server := grpc.NewServer()
+
+pb.RegisterGreeterServer(server, &greeterImpl{})   // Greeter service -> this object
+pb.RegisterHealthServer(server, &healthImpl{})     // Health service  -> that object
+
+server.Serve(lis)
+```
 
 ##### More detailed examples
 
-**HTTP (net/http, standard library)**
+**HTTP (`net/http`, standard library)**
 
 Map a URL path to a handler function:
+
 ```go
 
 package main
@@ -76,7 +87,13 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintln(w, "hello")
 }
 ```
-The registration line is `mux.HandleFunc("/hello", helloHandler)` → it tells the HTTP server's **mux**: "*requests for `/hello` → call `helloHandler`*"
+The registration line is: 
+
+```go
+mux.HandleFunc("/hello", helloHandler)
+```
+it tells the HTTP server's **mux** (the router from net/http): 
+"*requests for `/hello` → call `helloHandler`*"
 
 The mux’s job is basically:
 
@@ -93,7 +110,7 @@ incoming HTTP request
         +---- /health ---> health handler
 ```
 
-**gRPC (google.golang.org/grpc + generated code)**
+**gRPC (`google.golang.org/grpc` + generated code)**
 
 Registering binds a whole service (defined in a `.proto`) to a Go object that implements it:
 
@@ -129,9 +146,14 @@ func main() {
 }
 ```
 
-The registration line is `pb.RegisterGreeterServer(server, &greeterServer{})` → generated from the `.proto`; telling the gRPC server: "*calls for the Greeter service → route to this object,*" and gRPC then dispatches each RPC (like `SayHello`) to the matching method.
+The registration line is:
 
-Let’s review a little here to refresh my memory:
+```go
+pb.RegisterGreeterServer(server, &greeterServer{})
+```
+generated from the `.proto`; telling the gRPC server: "*calls for the Greeter service → route to this object,*" and gRPC then dispatches each RPC (like `SayHello`) to the matching method.
+
+Let’s review a little here to refresh our memory:
 
 **gRPC lets a program call a function that lives in another program over the network, as if it were local.**
 
@@ -182,7 +204,10 @@ A service is just gRPC's word for a named set of remote functions (RPCs). It's v
 
 `service Greeter { rpc SayHello(...) ... }` → "*the Greeter service offers a SayHello function*."
 
-`~/go/pkg/mod/github.com/crossplane/function-sdk-go@v0.6.2/proto/v1/run_function.proto`:
+The real contract Crossplane defines for composition functions, shipped inside the Go SDK:
+
+`~/go/pkg/mod/github.com/crossplane/function-sdk-go@v0.6.2/proto/v1/run_function.proto`
+
 ```proto
 syntax = "proto3";
 
@@ -198,18 +223,18 @@ service FunctionRunnerService {
 - `service FunctionRunnerService` → the named group of remote functions.
 - `rpc RunFunction(RunFunctionRequest) returns (RunFunctionResponse)` → one callable function, its input type, and its output type.
 
+> `.proto` is a formal language with a grammar (like Go or SQL), and protoc parses it. It has its own keywords, such as `syntax`, `package`, `message`, `service` and `rpc`.
 
-> `.proto` is a formal language with a grammar (like Go or SQL), and protoc parses it. Some tokens are reserved keywords like `syntax`, `package`, `service`, etc.
+**Messages**
 
-**And the messages (the "shapes" = your `fnv1` structs)**
-Right below the service, the same file defines the message shapes. For example:
+The above `run_function.proto` also defines the data the service sends and receives. For example, `RunFunctionRequest` is the input to `RunFunction`:
 
 ```proto
 message RunFunctionRequest {
-  RequestMeta meta = 1;        // → req.GetMeta() in your code
-  State observed = 2;          // → the observed resources you read
-  State desired = 3;           // → the desired resources
-  optional google.protobuf.Struct input = 4;   // → your Input
+  RequestMeta meta = 1;                         // req.GetMeta() in your code
+  State observed = 2;                           // the observed resources you read
+  State desired = 3;                            // the desired resources
+  optional google.protobuf.Struct input = 4;   // your Input
   optional google.protobuf.Struct context = 5;
   // ...
 }
@@ -218,9 +243,9 @@ message RunFunctionRequest {
 **3. "generated from the `.proto`" = a tool writes the Go boilerplate for you**
 
 The `.proto` file is just a contract; it has no Go code in it. To actually use it, you run a tool
-called `protoc` (the Protocol Buffers compiler) on the file. `protoc` reads the contract and
-**writes the Go code for you**, automatically. You never edit that generated file by hand; you
-regenerate it whenever the `.proto` changes.
+called `protoc` (the Protocol Buffers compiler) on the file.
+
+`protoc` reads the contract and **writes the Go code for you**, automatically. You never edit that generated file by hand; you regenerate it whenever the `.proto` changes.
 
 Think of it like a translator: you write the agreement once in the neutral `.proto` language, and
 `protoc` translates it into Go (it can also translate the same file into Python, Java, etc.). The
@@ -342,19 +367,18 @@ return function.Serve(&Function{log: log},   // <-- the handoff
 - Handing it to `function.Serve` **registers** it as the gRPC handler. Internally the SDK does the
   gRPC equivalent of `RegisterFunctionRunnerServiceServer(server, yourFunction)`.
 
+In short, `function.Serve(&Function{log: log})` creates the handler from `fn.go` and registers it with the gRPC server.
+
 This one expression is the *entire* connection between `main.go` and `fn.go`. `main.go` never calls
 `RunFunction` itself.
 
 ### Step 2 — Open the socket
 
-`function.Listen(c.Network, c.Address)` tells `Serve` to listen on `tcp` `:9443` (the CLI defaults
-from [CLI.md](CLI.md)). That is the same port you see as `containerPort: 9443` on the Kubernetes
-Deployment. The mTLS options wire in the certificates so only Crossplane can connect.
+`function.Listen(c.Network, c.Address)` is an option passed to `Serve`. It sets the network and address to listen on `tcp` `:9443` (the CLI defaults from [CLI.md](CLI.md)). That is the same port you see as `containerPort: 9443` on the Kubernetes Deployment. The mTLS options wire in the certificates so only Crossplane can connect.
 
 ### Step 3 — Block
 
-`function.Serve(...)` does not return. `Run()` parks on it, the process stays alive, and the pod
-keeps running; waiting for Crossplane to call.
+`function.Serve(...)` does not return. The process stays alive, and the pod keeps running; waiting for Crossplane to call.
 
 ### The handler that gets called: `RunFunction`
 
@@ -370,15 +394,13 @@ type Function struct {
 // RunFunction is the handler gRPC invokes on each request.
 func (f *Function) RunFunction(
     _ context.Context,
-    req *fnv1.RunFunctionRequest,   // input: observed state from Crossplane
-) (*fnv1.RunFunctionResponse, error) { // output: desired resources
+    req *fnv1.RunFunctionRequest,           // input: observed state from Crossplane
+) (*fnv1.RunFunctionResponse, error) {      // output: desired resources
     // read req → compute desired resources → return response
 }
 ```
 
-- Embedding `UnimplementedFunctionRunnerServiceServer` gives `Function` default implementations of
-  every method the gRPC service requires, so it satisfies the interface. You then **override only**
-  `RunFunction`; the one method that matters.
+- Embedding `UnimplementedFunctionRunnerServiceServer` gives Function a default "not implemented" version of every gRPC method, so it satisfies the interface. You then override only `RunFunction`.
 - The `RunFunction` signature is fixed by the gRPC contract (exact name and types), which is how
   gRPC knows to route incoming calls to it.
 
@@ -409,7 +431,7 @@ sequenceDiagram
 
 | Generic step | HTTP example | This repo (Crossplane function) |
 | --- | --- | --- |
-| Register handler | `http.HandleFunc("/hello", h)` | `function.Serve(&Function{log})` |
+| Register handler | `http.HandleFunc("/hello", h)`<br>request for path `/hello` → call `h` | `function.Serve(&Function{log})`<br>request for `FunctionRunnerService` (`RunFunction`) → call `(*Function).RunFunction` |
 | Open socket | `http.ListenAndServe(":8080", …)` | `function.Listen("tcp", ":9443")` |
 | Block forever | `ListenAndServe` doesn't return | `function.Serve` doesn't return |
 | Handler the framework calls | `helloHandler(w, r)` | `(*Function).RunFunction(ctx, req)` |
@@ -421,8 +443,8 @@ sequenceDiagram
 
 Starting a server means: **register** a handler object (tell the framework what to call),
 **open a socket** (listen on a port so others can reach you), and **block** (loop forever handling
-requests). You never call your handler yourself — the framework does, once per incoming request. In
+requests). You never call your handler yourself; the framework does, once per incoming request. In
 this repo, [main.go](xtenantargo/main.go) registers the `Function` from [fn.go](xtenantargo/fn.go)
 via `function.Serve`, listens on `:9443`, and blocks; then the gRPC runtime calls `RunFunction`
 every time Crossplane reconciles a composite resource. The link between the two files is the single
-expression `&Function{log: log}` — everything else is the framework doing the calling for you.
+expression `&Function{log: log}`; everything else is the framework doing the calling for you.

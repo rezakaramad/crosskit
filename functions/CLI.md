@@ -23,7 +23,7 @@ Modern Go CLIs follow what is often called the **command object pattern**:
 - Define a struct whose fields *are* the configuration.
 - Use struct tags to describe *defaults*, *help* text, environment bindings, and *short* flags.
 - Attach a `Run()` method that contains the "execute" behavior.
-- Let a parser bind input → struct, then invoke `Run()`.
+- Let a parser library reads the command line and environment, copies those values into your CLI struct, and then calls the struct's `Run()` method.
 
 This is more declarative and maintainable than a long list of imperative `flag.StringVar(...)`
 calls.
@@ -54,8 +54,9 @@ func main() {
 ```
 
 The struct tags (`help`, `default`, `env`, `short`) are read by a CLI-parsing library. Here that
-library is [kong](https://github.com/alecthomas/kong). `kong.Parse(&CLI{})` fills the struct from
-the command line and environment, and `ctx.Run()` invokes the `Run()` method.
+library is [kong](https://github.com/alecthomas/kong).
+
+`kong.Parse(&CLI{})` fills the struct from the command line and environment, and `ctx.Run()` invokes the `Run()` method.
 
 ## Common parsing libraries
 
@@ -244,7 +245,7 @@ Crossplane also injects identity/logging env vars (`FUNCTION_NAME`, `REVISION_NA
 `REVISION_UID`) that the SDK uses but that are not part of the `CLI` struct.
 
 So the effective configuration is: **env var `TLS_SERVER_CERTS_DIR` + struct defaults**. `kong.Parse`
-fills the `CLI` struct from the environment (and any args, of which there are none), then `ctx.Run()`
+fills the `CLI` struct from the environment. It would also read command-line flags, but Crossplane passes none, so the remaining fields fall back to their defaults. Then, `ctx.Run()`
 calls `(*CLI).Run()`, which calls `function.Serve(...)` to start the gRPC server on `:9443`.
 
 > You can see all of this on a live cluster:
@@ -253,10 +254,9 @@ calls `(*CLI).Run()`, which calls `function.Serve(...)` to start the gRPC server
 
 ### 3. The request/response loop
 
-Once the server is up, Crossplane calls it over gRPC (with mTLS) **every time it reconciles** a
-composite resource that references this function. Each call is a `RunFunctionRequest` in and a
-`RunFunctionResponse` out; handled by the `RunFunction` method in
-[fn.go](xtenantargo/fn.go):
+Once the server is up, Crossplane calls the running function process over gRPC (with mTLS) **every time it reconciles** a composite resource that references this function.
+
+Each call is a `RunFunctionRequest` in and a `RunFunctionResponse` out; handled by the `RunFunction` method in [fn.go](xtenantargo/fn.go):
 
 ```go
 func (f *Function) RunFunction(
@@ -271,6 +271,8 @@ Crossplane sends the observed state (the composite and its existing child resour
 returns the **desired** resources it wants composed. Crossplane then reconciles reality toward that
 desired state. The server keeps running and answers the next request — it is not restarted per
 reconcile.
+
+> Keep this in mind that Crossplane sends the **observed** state, and the function returns the **desired** state.
 
 ### 4. End-to-end
 
