@@ -2,7 +2,9 @@
 
 ## The one-sentence version
 
-A **Scheme** is a two-way dictionary that maps **Go structs** ↔ **Kubernetes type identities** (a `Group/Version/Kind`). "Registering" just means adding an entry to that dictionary; for example, teaching it about `argoproj.io/v1alpha1, Kind=ApplicationSet`.
+A **Scheme** is a two-way dictionary that maps **Go structs** ↔ **Kubernetes type identities** (a `Group/Version/Kind`). 
+
+*Registering* just means adding an entry to that dictionary; for example, teaching it about `argoproj.io/v1alpha1, Kind=ApplicationSet`.
 
 ## Why the dictionary is needed
 
@@ -34,16 +36,19 @@ It tells the Scheme:
 Two directions:
 
 - **Blob → struct** (decoding observed resources): the runtime reads the `kind`, looks it up in the dictionary, finds the matching Go type, and fills it in.
+  
+  (Crossplane → function)
 - **Struct → blob** (encoding desired resources): you hand it a typed struct, it looks up the struct, finds the right `apiVersion`/`kind`, and stamps them onto the output JSON.
+  (function → Crossplane)
 
 ## What breaks without it
 
 If you never register, the dictionary has no entry for that type. So when the runtime tries to convert, it either:
 
-- errors with something like "no kind is registered for the type argocd.ApplicationSet", or
+- errors with something like "no kind is registered for the type `argocd.ApplicationSet`", or
 - produces a blob with an **empty** `apiVersion`/`kind`, which Crossplane rejects.
 
-That's why `init()` calls `AddToScheme` **before** the function ever handles a request; it populates the dictionary up front.
+That's why [`init()`](xtenantargo/fn.go#L35) calls `AddToScheme` **before** the function ever handles a request; it populates the dictionary up front.
 
 ## The mental model to keep
 
