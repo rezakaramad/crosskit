@@ -32,7 +32,7 @@ Think of one **coordinator** and four **specialists**.
 | Role | Where | Job |
 | --- | --- | --- |
 | Coordinator | `RunFunction` in [fn.go](fn.go) | Reads the request, hands work out, collects the results |
-| Bundle of inputs | `XContext` in [resources/types.go](resources/types.go) | Everything a specialist might need, in one struct |
+| Bundle of inputs | `XContext` in [resources/types.go](resources/types.go) | One struct that holds everything a composer needs to do its job: the XWebApp, the platform defaults, what already exists, and a way to report problems. Each composer receives the same bundle and picks out what it needs |
 | Specialists ("composers") | [resources/](resources/) (`ServiceAccount`, `Deployment`, `Service`, `HTTPRoute`) | Each one builds **one** child resource and knows when it is ready |
 | Shared toolbox | [BaseComposer](../../modules/composer/composer.go) | Code every specialist shares (name, condition type, typed → blob conversion) |
 | Rulebook | `Validate` in [resources/utils.go](resources/utils.go) | Rejects bad XWebApps before any work starts |
@@ -47,7 +47,7 @@ sequenceDiagram
     participant B as buildComposers
     participant P as Each composer
 
-    C->>R: RunFunctionRequest (XWebApp + what already exists)
+    C->>R: RunFunctionRequest (XWebApp + existing child resources)
     R->>R: read input, observed, desired, XR
     R->>R: blob → typed XWebApp
     R->>V: is this XWebApp valid?
@@ -69,7 +69,7 @@ In [fn.go](fn.go), `RunFunction` does these in order:
 1. **Read the request.**
    - `GetInput`: the function's defaults (tolerations, gateway).
    - `GetObservedComposedResources`: children that already exist.
-   - `GetDesiredComposedResources`: the desired map to add to.
+   - `GetDesiredComposedResources`: the desired map to add to, holding what earlier functions in the composition pipeline already asked for (empty if this is the first or only step).
    - `GetObservedCompositeResource`: the XWebApp itself.
 2. **Convert blob → typed struct.** `FromUnstructured` copies the untyped XWebApp into `xw`, a typed
    `xwebapp.XWebApp`, so the code can write `xw.Spec.Template`.
@@ -92,16 +92,20 @@ instead of five separate arguments.
 | Field | Contains | Used for |
 | --- | --- | --- |
 | `Observed` | children that already exist | each composer finds its own and checks `IsReady()` |
-| `FunctionResponse` | the response being built | reporting fatal errors |
+| `FunctionResponse` | a handle to the response `RunFunction` is building | a composer uses it only to report a fatal error; its real output is the `DesiredResource` it returns |
 | `XR` | the typed XWebApp (`&xw`) | reading `spec` and metadata to build each child |
 | `Defaults` | the function's input | platform values such as tolerations and gateway |
 | `Log` | logger with XR fields attached | structured logging |
 
-It is an alias of a generic type, so the same machinery can be reused by other functions:
+`XContext` is a short name for the shared, generic `FunctionContext` with its two blanks filled in. The shared module leaves the XR type and the defaults type open so our functions can reuse it; here we fill them in for this function, making the bundle specific to `XWebApp`:
 
 ```go
 type XContext = composer.FunctionContext[*xwebapp.XWebApp, *inputv1beta1.Input]
+//                                        └─ XR: the typed XWebApp
+//                                                          └─ Defaults: this function's Input
 ```
+
+Because the blanks are filled in, `XR` is a typed `*xwebapp.XWebApp` and `Defaults` is a typed `*inputv1beta1.Input`. Composers can write `f.XR.Spec.Template` or `f.Defaults.Gateway` with no casting.
 
 ## 5. The loop: what happens to each composer
 
@@ -141,10 +145,19 @@ Every composer file in [resources/](resources/) follows the same shape. `Deploym
 
 ```go
 type Deployment struct {
-    XComposer                           // shared fields: FunctionContext, ResourceName, ConditionType
-    ObservedResource *appsv1.Deployment // the existing child, or nil on first run
+    XComposer                           // shared base: the XContext bundle, ResourceName, ConditionType, common methods
+    ObservedResource *appsv1.Deployment // this composer's own existing child (typed), or nil on first run
 }
 ```
+
+**Why two things, and how they differ:**
+
+| Field | What it is | Why it's here |
+| --- | --- | --- |
+| `XComposer` | The shared base from `BaseComposer`. It holds the same `XContext` bundle every composer gets, plus `ResourceName`, `ConditionType` and the common methods | Every composer needs the same inputs and helpers, so they are written once and embedded |
+| `ObservedResource` | Only this composer's child, as a typed struct | `NewDeployment` picks it out of the bundle's `Observed` map (all children, untyped) so `IsReady()` can read typed fields like `Status.Conditions` |
+
+Rule of thumb: `XComposer` is **the same for every composer**; `ObservedResource` is **specific to this one**.
 
 | Piece | What it does |
 | --- | --- |
