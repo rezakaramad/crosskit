@@ -56,6 +56,8 @@ func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource
 		return nil, errors.Wrap(err, "cannot create HTTPRoute")
 	}
 
+	// One composer per child; for an XR named "foo" the resource names are
+	// xwebapp-{serviceaccount,deployment,service,httproute}-foo.
 	return []composer.ComposableResource{serviceAccount, deployment, service, httpRoute}, nil
 }
 
