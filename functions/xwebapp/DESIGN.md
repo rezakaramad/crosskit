@@ -172,7 +172,7 @@ What "ready" means per child:
 | --- | --- | --- |
 | ServiceAccount | it exists | always |
 | Deployment | `Available` condition is true | always |
-| Service | it has a ClusterIP | at least one container port exists |
+| Service | it has a `ClusterIP` | at least one container port exists |
 | HTTPRoute | a parent Gateway has `Accepted` it | a hostname **and** a port named `http` exist |
 
 The Deployment is built from the developer's pod template plus **platform-owned fields**
@@ -181,9 +181,9 @@ wins on those fields; the API server validates the rest.
 
 ## 7. Worked example
 
-The developer applies an XWebApp named `foo` with one container port named `http` and a hostname.
+The developer applies an **XWebApp** named `foo` with one container port named `http` and a `hostname`.
 
-1. `Validate` passes (the port is named, and `http` exists for the hostname).
+1. `Validate` passes (the port is named, and `http` exists for the `hostname`).
 2. `buildComposers` returns four composers, named:
    - `xwebapp-serviceaccount-foo`
    - `xwebapp-deployment-foo`
