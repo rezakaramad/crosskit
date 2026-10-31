@@ -36,8 +36,8 @@ Every function has the same three layers, each with one job.
 flowchart TD
     A["1. Server layer<br/>main.go: CLI → gRPC server"] --> B["2. Coordinator<br/>fn.go: RunFunction"]
     B --> C["3. Composers<br/>resources/: one per child resource"]
-    S["Shared module<br/>modules/composer"] -.-> B
-    S -.-> C
+    S["Shared module<br/>modules/composer"] -.->|"loops over ComposableResource,<br/>calls ComposeDesiredResource() and IsReady()"| B
+    S -.->|"embeds BaseComposer, uses ConvertObserved<br/>and ComposeDesiredResourceFrom()"| C
 ```
 
 | Layer | Where | Job | Same for every function? |
