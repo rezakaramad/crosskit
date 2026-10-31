@@ -40,15 +40,7 @@ func init() {
 	utilruntime.Must(groupsv1beta1.AddToScheme(composed.Scheme))
 }
 
-// InternalErrorResponse marks the function response as fatally failed due to an internal error.
-func InternalErrorResponse(rsp *fnv1.RunFunctionResponse, err error) {
-	response.ConditionFalse(rsp, "FunctionSuccess", "InternalError").
-		TargetCompositeAndClaim()
-
-	response.Fatal(rsp, err)
-}
-
-// buildComposers constructs all child resource composers for the XExample composition,
+// buildComposers constructs all child resource composers for the XTenantEntra composition,
 // returning the full set of resources to compose during reconciliation.
 func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource, error) {
 	argocdGroup, err := resources.NewArgoCDGroup(fnContext)

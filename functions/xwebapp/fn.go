@@ -61,7 +61,9 @@ func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource
 	return []composer.ComposableResource{serviceAccount, deployment, service, httpRoute}, nil
 }
 
-// RunFunction composes the child resources of the observed XWebApp.
+// RunFunction is the entry point for the composition function.
+// Crossplane passes everything the function needs to run in a RunFunctionRequest struct.
+// The function tells Crossplane what resources it should compose by returning a RunFunctionResponse struct.
 func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
 	var xw xwebapp.XWebApp
 
