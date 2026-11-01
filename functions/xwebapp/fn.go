@@ -31,6 +31,7 @@ type Function struct {
 }
 
 // init registers the composed resource types; a failure is a programming error, so it panics.
+// See [Schema Registration](../SchemeRegistration.md).
 func init() {
 	utilruntime.Must(appsv1.AddToScheme(composed.Scheme))
 	utilruntime.Must(corev1.AddToScheme(composed.Scheme))

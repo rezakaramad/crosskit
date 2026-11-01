@@ -1,0 +1,54 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtenant
+spec:
+  compositeTypeRef:
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XTenant
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xtenant
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: Input
+
+        # The Argo CD AppProject all generated Applications belong to.
+        project: tenant-system
+
+        # The label key set on every generated resource, with the tenant name as its value.
+        tenantLabelKey: platform.rezakara.demo/tenant
+
+        # Tenant sso resources
+        sso:
+          repoURL: https://github.com/rezakaramad/kubepave
+          path: kubernetes/charts/tenant-sso
+          targetRevision: HEAD
+          targetNamespace: tenant-system
+
+        # Tenant management resources
+        management:
+          repoURL: https://github.com/rezakaramad/kubepave
+          path: kubernetes/charts/tenant-management
+          targetRevision: HEAD
+          targetNamespace: tenant-system
+
+        # Tenant workload resources
+        workload:
+          repoURL: https://github.com/rezakaramad/kubepave
+          path: kubernetes/charts/tenant-workload
+          targetRevision: HEAD
+          helm:
+            valueFiles:
+              - 'values-{{ index .metadata.labels "argocd.rezakara.demo/environment" }}.yaml'
+          targetClusters:
+            clusterTypeKey: argocd.rezakara.demo/cluster-type
+            clusterType: tenant
+            environmentKey: argocd.rezakara.demo/environment
+            environments:
+              - development
+
+        namespace:
+          argo: argocd

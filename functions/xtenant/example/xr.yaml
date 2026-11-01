@@ -1,0 +1,6 @@
+apiVersion: idp.rezakara.demo/v1beta1
+kind: XTenant
+metadata:
+  name: pillow-factory
+spec:
+  shortName: pil
