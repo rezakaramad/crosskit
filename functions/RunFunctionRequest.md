@@ -27,7 +27,7 @@ message State {
 }
 ```
 
-- `composite` (1) → the XR itself (a single `Resource`, e.g. `XTenantEntra`). There is always exactly one per call. You read it via `request.GetObservedCompositeResource(req)`.
+- `composite` (1) → the XR itself (a single `Resource`, e.g. `XTenantSSO`). There is always exactly one per call. You read it via `request.GetObservedCompositeResource(req)`.
 - `resources` (2) → `map<string, Resource>` of composed resources. The **key** is the resource's composition-local name (a logical label you choose, like `applicationset`), **not** the Kubernetes `metadata.name`. The map (rather than a list) gives each child a stable identity across reconciles, so Crossplane updates the same resource instead of creating duplicates. You read/write it via `request.GetObservedComposedResources(req)` / `request.GetDesiredComposedResources(req)`, and the line `desired[desiredResource.Name] = desiredResource.Resource` sets an entry in this map.
 
 `observed` and `desired` share this exact structure; only their meaning differs:

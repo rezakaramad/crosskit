@@ -6,7 +6,7 @@ A [Crossplane composition function][functions] that renders the Argo CD
 the workload clusters selected by cluster labels.
 
 It is the function counterpart of the Helm-rendered `ApplicationSet` in the
-`tenant-management` chart, and is consistent with the `xtenantentra` function in
+`tenant-management` chart, and is consistent with the `xtenantsso` function in
 coding style, structure, and design pattern.
 
 ```shell

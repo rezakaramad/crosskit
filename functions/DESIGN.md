@@ -1,7 +1,7 @@
 # How composition functions are designed in this repo
 
 A generic map of how every function under `functions/` is built and how a request flows through it.
-Read it once to learn the shape; after that, any function (`xwebapp`, `xtenantargo`, `xtenantentra`) looks familiar.
+Read it once to learn the shape; after that, any function (`xwebapp`, `xtenantargo`, `xtenantsso`) looks familiar.
 
 `XWebApp` is used as a small running example. For its full, detailed walkthrough see
 [xwebapp/DESIGN.md](xwebapp/DESIGN.md).
