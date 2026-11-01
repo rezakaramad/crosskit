@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantentra/input/v1beta1"
-	"github.com/rezakaramad/crosskit/functions/xtenantentra/resources"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantsso/input/v1beta1"
+	"github.com/rezakaramad/crosskit/functions/xtenantsso/resources"
 	"github.com/rezakaramad/crosskit/modules/composer"
-	"github.com/rezakaramad/crosskit/types/xtenantentra"
+	xtenantssov1beta1 "github.com/rezakaramad/crosskit/types/xtenantsso/v1beta1"
 	appv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/app/v1beta1"
 	applicationsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/applications/v1beta1"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
@@ -40,7 +40,7 @@ func init() {
 	utilruntime.Must(groupsv1beta1.AddToScheme(composed.Scheme))
 }
 
-// buildComposers constructs all child resource composers for the XTenantEntra composition,
+// buildComposers constructs all child resource composers for the XTenantSSO composition,
 // returning the full set of resources to compose during reconciliation.
 func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource, error) {
 	argocdGroup, err := resources.NewArgoCDGroup(fnContext)
@@ -90,7 +90,7 @@ func (f *Function) RunFunction(
 	_ context.Context,
 	req *fnv1.RunFunctionRequest,
 ) (*fnv1.RunFunctionResponse, error) {
-	var xd xtenantentra.XTenantEntra
+	var xd xtenantssov1beta1.XTenantSSO
 
 	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 
@@ -127,7 +127,7 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// Convert the observed composite resource (the XR itself) to the strongly typed XTenantEntra struct.
+	// Convert the observed composite resource (the XR itself) to the strongly typed XTenantSSO struct.
 	// xr - Right before this, we have retrieved the Crossplane's unstructured representation of
 	// the composite resource.
 	// xd - Now we convert it to the strongly typed Go representation.

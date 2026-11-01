@@ -4,16 +4,16 @@ import (
 	"testing"
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
-	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantentra/input/v1beta1"
-	xtenantentra "github.com/rezakaramad/crosskit/types/xtenantentra"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantsso/input/v1beta1"
+	xtenantssov1beta1 "github.com/rezakaramad/crosskit/types/xtenantsso/v1beta1"
 	applicationsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/applications/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestArgoCDAppRole_createResource(t *testing.T) {
-	xr := &xtenantentra.XTenantEntra{
+	xr := &xtenantssov1beta1.XTenantSSO{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
-		Spec:       xtenantentra.XTenantEntraSpec{},
+		Spec:       xtenantssov1beta1.XTenantSSOSpec{},
 	}
 	d := &inputv1beta1.Input{
 		ArgoCDApp:         inputv1beta1.ArgoCDAppConfig{AppRegObjectID: "argocd-appreg-uuid"},

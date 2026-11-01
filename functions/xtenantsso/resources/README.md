@@ -1,6 +1,6 @@
 # EntraID Tenant resources
 
-This package builds the Azure resources composed for each `XTenantEntra`.
+This package builds the Azure resources composed for each `XTenantSSO`.
 Every resource is scoped to the tenant name and uses the provider configuration
 from the function input defaults.
 

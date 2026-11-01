@@ -39,7 +39,7 @@ func TestRunFunction(t *testing.T) {
 						Composite: &fnv1.Resource{
 							Resource: resource.MustStructJSON(`{
 								"apiVersion": "idp.rezakara.demo/v1beta1",
-								"kind": "XTenantEntra",
+								"kind": "XTenantSSO",
 								"metadata": {"name": "pillow-factory"},
 								"spec": {}
 							}`),
@@ -88,7 +88,7 @@ func TestRunFunction(t *testing.T) {
 						Composite: &fnv1.Resource{
 							Resource: resource.MustStructJSON(`{
 								"apiVersion": "idp.rezakara.demo/v1beta1",
-								"kind": "XTenantEntra",
+								"kind": "XTenantSSO",
 								"metadata": {"name": "pillow-factory"},
 								"spec": {}
 							}`),

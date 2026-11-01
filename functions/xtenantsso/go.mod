@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crosskit/functions/xtenantentra
+module github.com/rezakaramad/crosskit/functions/xtenantsso
 
 go 1.26.4
 
@@ -7,7 +7,6 @@ require (
 	github.com/crossplane/crossplane-runtime/v2 v2.3.1
 	github.com/crossplane/function-sdk-go v0.6.2
 	github.com/google/uuid v1.6.0
-	github.com/rezakaramad/crosskit/types/xtenantentra v0.1.1
 	github.com/upbound/provider-azuread/v2 v2.2.1
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
@@ -88,6 +87,7 @@ require (
 	github.com/prometheus/common v0.68.1 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/rezakaramad/crosskit/modules/composer v0.1.2
+	github.com/rezakaramad/crosskit/types/xtenantsso v0.1.0
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect

@@ -4,17 +4,17 @@ import (
 	"testing"
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
-	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantentra/input/v1beta1"
-	xtenantentra "github.com/rezakaramad/crosskit/types/xtenantentra"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantsso/input/v1beta1"
+	xtenantssov1beta1 "github.com/rezakaramad/crosskit/types/xtenantsso/v1beta1"
 	appv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/app/v1beta1"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestArgoCDSsoRoleAssignment_createResource(t *testing.T) {
-	xr := &xtenantentra.XTenantEntra{
+	xr := &xtenantssov1beta1.XTenantSSO{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
-		Spec:       xtenantentra.XTenantEntraSpec{},
+		Spec:       xtenantssov1beta1.XTenantSSOSpec{},
 	}
 	d := &inputv1beta1.Input{
 		ArgoCDApp: inputv1beta1.ArgoCDAppConfig{
@@ -55,9 +55,9 @@ func TestArgoCDSsoRoleAssignment_createResource(t *testing.T) {
 // composition (returns nil, nil) instead of building an assignment with a
 // dangling principal.
 func TestArgoCDSsoRoleAssignment_ComposeDesired_NoObservedGroup(t *testing.T) {
-	xr := &xtenantentra.XTenantEntra{
+	xr := &xtenantssov1beta1.XTenantSSO{
 		ObjectMeta: metav1.ObjectMeta{Name: "pillow-factory"},
-		Spec:       xtenantentra.XTenantEntraSpec{},
+		Spec:       xtenantssov1beta1.XTenantSSOSpec{},
 	}
 	d := &inputv1beta1.Input{}
 	r := &ArgoCDSsoRoleAssignment{
