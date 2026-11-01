@@ -4,7 +4,6 @@ This package builds the Argo CD resources composed for each `XTenant`.
 
 | Composer | Kind | Internal name | Purpose |
 | --- | --- | --- | --- |
-| `ArgoCDApplication` (sso) | `Application` | `xtenant-application-sso-{tenant}` | Deploys the `tenant-sso` chart to the management cluster. |
 | `ArgoCDApplication` (management) | `Application` | `xtenant-application-management-{tenant}` | Deploys the `tenant-management` chart to the management cluster. |
 | `ArgoCDApplicationSet` | `ApplicationSet` | `xtenant-applicationset-workload-{tenant}` | Deploys the `tenant-workload` chart to the workload clusters. |
 
@@ -14,8 +13,8 @@ All of them:
 - Pass the tenant name and `XTenant.Spec.ShortName` to Helm as `tenant.name` and `tenant.tenantShortName`.
 - Apply the configured repository revision, Helm value files, and Helm parameters.
 
-The Applications use `{tenant}-sso` and `{tenant}-management` as their Kubernetes names, carry the
-cascade finalizer, and sync automatically with self-heal (no prune), because readiness requires `Synced`.
+The Application uses `{tenant}-management` as its Kubernetes name, carries the
+cascade finalizer, and syncs automatically with self-heal (no prune), because readiness requires `Synced`.
 
 The `ApplicationSet` is named `{tenant}-workload` and has a single `clusters` generator that creates
 `{tenant}-workload-{env}` for every cluster matching the configured cluster-type and environment labels.

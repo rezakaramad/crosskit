@@ -30,10 +30,6 @@ type Input struct {
 	// +kubebuilder:default="in-cluster"
 	ManagementCluster string `json:"managementCluster,omitempty"`
 
-	// SSO configures the Application that deploys the tenant-sso chart to the
-	// management cluster.
-	SSO ApplicationConfig `json:"sso"`
-
 	// Management configures the Application that deploys the tenant-management
 	// chart to the management cluster.
 	Management ApplicationConfig `json:"management"`

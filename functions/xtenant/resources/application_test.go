@@ -15,12 +15,6 @@ func testInput() *inputv1beta1.Input {
 	return &inputv1beta1.Input{
 		Project:        "tenant-system",
 		TenantLabelKey: testTenantLabelKey,
-		SSO: inputv1beta1.ApplicationConfig{
-			RepoURL:         "https://github.com/rezakaramad/kubepave",
-			Path:            "kubernetes/charts/tenant-sso",
-			TargetRevision:  "HEAD",
-			TargetNamespace: "tenant-system",
-		},
 		Management: inputv1beta1.ApplicationConfig{
 			RepoURL:         "https://github.com/rezakaramad/kubepave",
 			Path:            "kubernetes/charts/tenant-management",
@@ -63,15 +57,6 @@ func TestArgoCDApplication_CreateResource(t *testing.T) {
 		wantPath string
 		wantHelm []argocd.HelmParameter
 	}{
-		"sso": {
-			build:    NewSSOApplication,
-			wantName: "pillow-factory-sso",
-			wantPath: "kubernetes/charts/tenant-sso",
-			wantHelm: []argocd.HelmParameter{
-				{Name: "tenant.name", Value: "pillow-factory"},
-				{Name: "tenant.tenantShortName", Value: "pil"},
-			},
-		},
 		"management": {
 			build:    NewManagementApplication,
 			wantName: "pillow-factory-management",
@@ -141,7 +126,7 @@ func TestArgoCDApplication_ManagementCluster(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f := testXContext()
 			f.Defaults.ManagementCluster = tc.configured
-			r, err := NewSSOApplication(f)
+			r, err := NewManagementApplication(f)
 			if err != nil {
 				t.Fatal(err)
 			}

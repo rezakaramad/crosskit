@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	ssoName        = "xtenant-application-sso-pillow-factory"
 	managementName = "xtenant-application-management-pillow-factory"
 	workloadName   = "xtenant-applicationset-workload-pillow-factory"
 )
@@ -25,12 +24,6 @@ const input = `{
 	"kind": "Input",
 	"project": "tenant-system",
 	"tenantLabelKey": "platform.rezakara.demo/tenant",
-	"sso": {
-		"repoURL": "https://github.com/rezakaramad/kubepave",
-		"path": "kubernetes/charts/tenant-sso",
-		"targetRevision": "HEAD",
-		"targetNamespace": "tenant-system"
-	},
 	"management": {
 		"repoURL": "https://github.com/rezakaramad/kubepave",
 		"path": "kubernetes/charts/tenant-management",
@@ -74,22 +67,19 @@ func TestRunFunction(t *testing.T) {
 		want     map[string]fnv1.Ready
 	}{
 		"ComposesAllChildren": {
-			reason:   "All three children are composed on the first reconcile, none ready yet",
+			reason:   "Both children are composed on the first reconcile, none ready yet",
 			observed: nil,
 			want: map[string]fnv1.Ready{
-				ssoName:        fnv1.Ready_READY_FALSE,
 				managementName: fnv1.Ready_READY_FALSE,
 				workloadName:   fnv1.Ready_READY_FALSE,
 			},
 		},
 		"ReadinessIsPerChild": {
-			reason: "Each child reports its own readiness; a degraded sso does not affect the others",
+			reason: "Each child reports its own readiness; a ready management Application does not make the workload ApplicationSet ready",
 			observed: map[string]*fnv1.Resource{
-				ssoName:        observedApplication("pillow-factory-sso", "Degraded", "Synced"),
 				managementName: observedApplication("pillow-factory-management", "Healthy", "Synced"),
 			},
 			want: map[string]fnv1.Ready{
-				ssoName:        fnv1.Ready_READY_FALSE,
 				managementName: fnv1.Ready_READY_TRUE,
 				workloadName:   fnv1.Ready_READY_FALSE,
 			},

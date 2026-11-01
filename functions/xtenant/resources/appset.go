@@ -4,34 +4,21 @@ import (
 	"fmt"
 
 	"github.com/rezakaramad/crosskit/functions/xtenant/argocd"
-	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenant/input/v1beta1"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/crossplane/function-sdk-go/resource"
 )
 
-// ArgoCDApplicationSet composes an ApplicationSet that deploys one tenant workload resources to the workload clusters (Development/Test/Production).
+// ArgoCDApplicationSet composes the ApplicationSet that deploys the tenant workload resources to the workload clusters.
 type ArgoCDApplicationSet struct {
 	XComposer
-	role             string // workload
-	config           inputv1beta1.ApplicationSetConfig
 	ObservedResource *argocd.ApplicationSet
 }
 
-// NewWorkloadApplicationSet creates the composer for the ApplicationSet that deploys the tenant workload resources.
+// NewWorkloadApplicationSet creates an ApplicationSet composer and deserializes any observed ApplicationSet.
 func NewWorkloadApplicationSet(f XContext) (*ArgoCDApplicationSet, error) {
-	return newApplicationSet(f, "workload", "ArgoCDWorkloadApplicationSetReady", f.Defaults.Workload)
-}
-
-// newApplicationSet creates an ApplicationSet composer and deserializes any observed ApplicationSet.
-func newApplicationSet(
-	f XContext,
-	role string,
-	conditionType string,
-	config inputv1beta1.ApplicationSetConfig,
-) (*ArgoCDApplicationSet, error) {
-	resourceName := resource.Name(fmt.Sprintf("xtenant-applicationset-%s-%s", role, f.XR.Name))
+	resourceName := resource.Name(fmt.Sprintf("xtenant-applicationset-workload-%s", f.XR.Name))
 	observedStructured, err := composer.ConvertObserved[argocd.ApplicationSet](f.Observed, resourceName)
 	if err != nil {
 		return nil, err
@@ -41,10 +28,8 @@ func newApplicationSet(
 		XComposer: XComposer{
 			FunctionContext: f,
 			ResourceName:    resourceName,
-			ConditionType:   conditionType,
+			ConditionType:   "ArgoCDWorkloadApplicationSetReady",
 		},
-		role:             role,
-		config:           config,
 		ObservedResource: observedStructured,
 	}, nil
 }
@@ -72,7 +57,7 @@ func (r *ArgoCDApplicationSet) IsReady() bool {
 func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 	xr := r.FunctionContext.XR
 	defaults := r.FunctionContext.Defaults
-	cfg := r.config
+	cfg := defaults.Workload
 
 	tenant := xr.GetName()
 	envRef := labelRef(cfg.TargetClusters.EnvironmentKey)
@@ -96,7 +81,7 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 			},
 			Template: argocd.ApplicationSetTemplate{
 				ApplicationSetTemplateMeta: argocd.ApplicationSetTemplateMeta{
-					Name:   fmt.Sprintf("%s-%s-%s", tenant, r.role, envRef),
+					Name:   fmt.Sprintf("%s-workload-%s", tenant, envRef),
 					Labels: labels,
 				},
 				Spec: argocd.ApplicationSpec{
@@ -120,7 +105,7 @@ func (r *ArgoCDApplicationSet) createResource() *argocd.ApplicationSet {
 
 	return &argocd.ApplicationSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", tenant, r.role),
+			Name:      fmt.Sprintf("%s-workload", tenant),
 			Namespace: defaults.Namespace.Argo,
 			Labels:    labels,
 		},

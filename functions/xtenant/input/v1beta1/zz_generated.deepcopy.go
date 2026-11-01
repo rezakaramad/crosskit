@@ -86,7 +86,6 @@ func (in *Input) DeepCopyInto(out *Input) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.SSO.DeepCopyInto(&out.SSO)
 	in.Management.DeepCopyInto(&out.Management)
 	in.Workload.DeepCopyInto(&out.Workload)
 	out.Namespace = in.Namespace

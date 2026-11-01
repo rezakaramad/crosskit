@@ -21,13 +21,6 @@ spec:
         # The label key set on every generated resource, with the tenant name as its value.
         tenantLabelKey: platform.rezakara.demo/tenant
 
-        # Tenant sso resources
-        sso:
-          repoURL: https://github.com/rezakaramad/kubepave
-          path: kubernetes/charts/tenant-sso
-          targetRevision: HEAD
-          targetNamespace: tenant-system
-
         # Tenant management resources
         management:
           repoURL: https://github.com/rezakaramad/kubepave

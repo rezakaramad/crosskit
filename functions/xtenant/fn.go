@@ -36,10 +36,6 @@ func init() {
 
 // buildComposers constructs the composer for every child resource of an XTenant.
 func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource, error) {
-	sso, err := resources.NewSSOApplication(fnContext)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create SSO Application")
-	}
 	management, err := resources.NewManagementApplication(fnContext)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create management Application")
@@ -49,7 +45,7 @@ func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource
 		return nil, errors.Wrap(err, "cannot create workload ApplicationSet")
 	}
 
-	return []composer.ComposableResource{sso, management, workload}, nil
+	return []composer.ComposableResource{management, workload}, nil
 }
 
 // RunFunction is the entry point for the composition function.

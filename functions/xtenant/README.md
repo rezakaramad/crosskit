@@ -1,11 +1,10 @@
 # function-xtenant
 
 A [Crossplane composition function][functions] that composes the Argo CD
-resources which deploy a tenant. Each `XTenant` produces three children:
+resources which deploy a tenant. Each `XTenant` produces two children:
 
 | Resource | Name | Deploys | To |
 | --- | --- | --- | --- |
-| `Application` | `<tenant>-sso` | `tenant-sso` chart | management cluster |
 | `Application` | `<tenant>-management` | `tenant-management` chart | management cluster |
 | `ApplicationSet` | `<tenant>-workload` | `tenant-workload` chart | workload clusters |
 
