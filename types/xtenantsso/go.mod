@@ -1,4 +1,4 @@
-module github.com/rezakaramad/crosskit/types/xtenantentra
+module github.com/rezakaramad/crosskit/types/xtenantsso
 
 go 1.26.4
 
