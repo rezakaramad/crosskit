@@ -1,43 +1,45 @@
-# EntraID Tenant resources
+# Entra ID tenant SSO resources
 
 This package builds the Azure resources composed for each `XTenantSSO`.
-Every resource is scoped to the tenant name and uses the provider configuration
-from the function input defaults.
+The function input lists the apps (`apps`); every resource below is composed once per app,
+scoped to the tenant name, and uses the provider configuration from the input.
 
 ## Resources
 
-| Resource | AzureAD kind | Purpose |
+| Composer | AzureAD kind | Purpose |
 | --- | --- | --- |
-| `ArgoCDGroup` | `Group` | Creates the tenant's ArgoCD ACL group. |
-| `VaultGroup` | `Group` | Creates the tenant's Vault ACL group. |
-| `ArgoCDAppRole` | `AppRole` | Creates the tenant-specific role on the ArgoCD application registration. The corresponding role assignment grants the tenant's ArgoCD group access to the Argo CD UI. |
-| `VaultAppRole` | `AppRole` | Creates the tenant-specific role on the Vault application registration. The corresponding role assignment grants the tenant's Vault group access to Vault. |
-| `ArgoCDSsoRoleAssignment` | `RoleAssignment` | Assigns the ArgoCD role to the tenant's ArgoCD ACL group on the ArgoCD enterprise application. |
-| `VaultSsoRoleAssignment` | `RoleAssignment` | Assigns the Vault role to the tenant's Vault ACL group on the Vault enterprise application. |
+| `Group` | `Group` | Creates the tenant's ACL group for the app. |
+| `AppRole` | `AppRole` | Creates the tenant-specific role on the app's registration. |
+| `RoleAssignment` | `RoleAssignment` | Assigns the role to the tenant's group on the app's enterprise application. |
 
-The ArgoCD and Vault resources are independent pairs:
+For each app:
 
 ```text
 Group -> RoleAssignment
-AppRole ----^                 (the assignment uses the generated AppRole ID)
+AppRole ----^                 (the assignment uses the AppRole's ID)
 ```
 
-The role assignments also require the corresponding group's observed Azure
-`ObjectID`. They are therefore omitted from the desired response until the
-group has been reconciled and its ID is available; a later reconcile composes
-the assignment.
+The role assignment also needs the group's observed Azure `ObjectID`. It is therefore omitted from
+the desired response until the group has been reconciled and its ID is available; a later reconcile
+composes it.
 
 ## Generated names
 
-Kubernetes resource names include the tenant name:
+Kubernetes names include the app name and the tenant name:
 
 | Resource | Name pattern |
 | --- | --- |
-| ACL group | `acl-plt-{argocd\|vault}-tenant-{tenant}` |
-| AppRole | `app-role-{argocd\|vault}-{tenant}` |
-| SSO role assignment | `acl-plt-{argocd\|vault}-sso-role-{tenant}` |
+| ACL group | `acl-plt-{app}-tenant-{tenant}` |
+| AppRole | `app-role-{app}-{tenant}` |
+| Role assignment | `acl-plt-{app}-sso-role-{tenant}` |
 
-The corresponding observed-resource lookup names are `group-{service}-{tenant}`
-and `roleassignment-{service}-sso-role-{tenant}`. These names are internal
-Crossplane composition names and are separate from the Kubernetes object names
-listed above.
+The internal Crossplane composition names are separate from the Kubernetes names:
+`group-{app}-{tenant}`, `app-role-{app}-{tenant}` and `roleassignment-{app}-sso-role-{tenant}`.
+Condition types use the app's display name, for example `ArgoCDGroupReady`.
+
+## Role IDs
+
+The AppRole's ID is a UUIDv5 of `{app}-{tenant}`, so it is stable. The role assignment derives the
+same value. Role IDs are immutable in Entra, so changing the derivation makes the provider refuse the update.
+
+Removing an app from the input removes its three resources, and with them the group and role in Entra.

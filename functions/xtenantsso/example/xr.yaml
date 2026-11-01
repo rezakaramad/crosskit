@@ -1,6 +1,6 @@
 # Replace this with your XR!
-apiVersion: platform.jysk.tech/v1beta1
-kind: XTenantGroups
+apiVersion: idp.rezakara.demo/v1beta1
+kind: XTenantSSO
 metadata:
   name: pillow-factory
 spec: {}

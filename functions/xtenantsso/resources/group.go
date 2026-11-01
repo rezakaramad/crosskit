@@ -7,6 +7,7 @@ import (
 
 	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	commonv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
+	inputv1beta1 "github.com/rezakaramad/crosskit/functions/xtenantsso/input/v1beta1"
 	"github.com/rezakaramad/crosskit/modules/composer"
 	groupsv1beta1 "github.com/upbound/provider-azuread/v2/apis/namespaced/groups/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,46 +15,48 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 )
 
-// ArgoCDGroup composes a Kubernetes Entra ID Group for the tenant.
-// For every child resource, we define a struct that encapsulates the observed resource
-// and the desired resource specification.
-type ArgoCDGroup struct {
+// Group composes the tenant's Entra ID ACL group for one app.
+type Group struct {
 	XComposer
+	app              inputv1beta1.AppConfig
 	ObservedResource *groupsv1beta1.Group
 }
 
-// NewArgoCDGroup creates a new ArgoCDGroup composer. It looks up the observed Group resource
-// and deserializes it for readiness check.
-// Returns an error if the observed resource exists but cannot be deserialized.
-func NewArgoCDGroup(f XContext) (composer.ComposableResource, error) {
-	resourceName := resource.Name(fmt.Sprintf("group-argocd-%s", f.XR.Name))
-	observedStructured, err := composer.ConvertObserved[groupsv1beta1.Group](f.Observed, resourceName)
+// groupResourceName is the internal name of an app's group. The RoleAssignment looks the group up by it.
+func groupResourceName(app inputv1beta1.AppConfig, tenant string) resource.Name {
+	return resource.Name(fmt.Sprintf("group-%s-%s", app.Name, tenant))
+}
+
+// NewGroup creates a Group composer and deserializes any observed Group.
+func NewGroup(f XContext, app inputv1beta1.AppConfig) (*Group, error) {
+	resourceName := groupResourceName(app, f.XR.Name)
+	observed, err := composer.ConvertObserved[groupsv1beta1.Group](f.Observed, resourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ArgoCDGroup{
+	return &Group{
 		XComposer: XComposer{
 			FunctionContext: f,
 			ResourceName:    resourceName,
-			ConditionType:   "ArgoCDGroupReady",
+			ConditionType:   app.DisplayName + "GroupReady",
 		},
-		ObservedResource: observedStructured,
+		app:              app,
+		ObservedResource: observed,
 	}, nil
 }
 
-// ComposeDesiredResource builds the desired ArgoCDGroup and wraps it as a
-// DesiredResource for inclusion in the function response.
-func (s *ArgoCDGroup) ComposeDesiredResource() (*composer.DesiredResource, error) {
-	return s.ComposeDesiredResourceFrom(s.createResource())
+// ComposeDesiredResource builds the desired Group.
+func (g *Group) ComposeDesiredResource() (*composer.DesiredResource, error) {
+	return g.ComposeDesiredResourceFrom(g.createResource())
 }
 
 // IsReady returns true if the observed resource has a Ready condition with status True.
-func (s *ArgoCDGroup) IsReady() bool {
-	if s.ObservedResource == nil {
+func (g *Group) IsReady() bool {
+	if g.ObservedResource == nil {
 		return false
 	}
-	for _, c := range s.ObservedResource.Status.Conditions {
+	for _, c := range g.ObservedResource.Status.Conditions {
 		if c.Type == "Ready" && c.Status == "True" {
 			return true
 		}
@@ -61,16 +64,16 @@ func (s *ArgoCDGroup) IsReady() bool {
 	return false
 }
 
-// createResource constructs the Kubernetes Group spec for the tenant.
-func (s *ArgoCDGroup) createResource() *groupsv1beta1.Group {
-	xr := s.FunctionContext.XR
-	defaults := s.FunctionContext.Defaults
+// createResource constructs the Group for the tenant.
+func (g *Group) createResource() *groupsv1beta1.Group {
+	tenant := g.FunctionContext.XR.GetName()
+	defaults := g.FunctionContext.Defaults
 
-	displayName := "ACL.PLT.ArgoCD.Tenant." + pascal(xr.GetName())
+	displayName := fmt.Sprintf("ACL.PLT.%s.Tenant.%s", g.app.DisplayName, pascal(tenant))
 
-	group := &groupsv1beta1.Group{
+	return &groupsv1beta1.Group{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "acl-plt-argocd-tenant-" + xr.GetName(),
+			Name: fmt.Sprintf("acl-plt-%s-tenant-%s", g.app.Name, tenant),
 		},
 		Spec: groupsv1beta1.GroupSpec{
 			ForProvider: groupsv1beta1.GroupParameters{
@@ -88,6 +91,4 @@ func (s *ArgoCDGroup) createResource() *groupsv1beta1.Group {
 			},
 		},
 	}
-
-	return group
 }

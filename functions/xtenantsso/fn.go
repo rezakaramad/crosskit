@@ -40,47 +40,30 @@ func init() {
 	utilruntime.Must(groupsv1beta1.AddToScheme(composed.Scheme))
 }
 
-// buildComposers constructs all child resource composers for the XTenantSSO composition,
-// returning the full set of resources to compose during reconciliation.
+// buildComposers constructs the Group, AppRole and RoleAssignment composers for every app in the input.
 func buildComposers(fnContext resources.XContext) ([]composer.ComposableResource, error) {
-	argocdGroup, err := resources.NewArgoCDGroup(fnContext)
-	if err != nil {
-		return nil, err
+	var composers []composer.ComposableResource
+
+	for _, app := range fnContext.Defaults.Apps {
+		group, err := resources.NewGroup(fnContext, app)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create Group for %s", app.Name)
+		}
+
+		role, err := resources.NewAppRole(fnContext, app)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create AppRole for %s", app.Name)
+		}
+
+		assignment, err := resources.NewRoleAssignment(fnContext, app)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create RoleAssignment for %s", app.Name)
+		}
+
+		composers = append(composers, group, role, assignment)
 	}
 
-	argocdAppRegRole, err := resources.NewArgoCDAppRole(fnContext)
-	if err != nil {
-		return nil, err
-	}
-
-	argocdSsoRoleAssignment, err := resources.NewArgoCDSsoRoleAssignment(fnContext)
-	if err != nil {
-		return nil, err
-	}
-
-	vaultGroup, err := resources.NewVaultGroup(fnContext)
-	if err != nil {
-		return nil, err
-	}
-
-	vaultAppRegRole, err := resources.NewVaultAppRole(fnContext)
-	if err != nil {
-		return nil, err
-	}
-
-	vaultSsoRoleAssignment, err := resources.NewVaultSsoRoleAssignment(fnContext)
-	if err != nil {
-		return nil, err
-	}
-
-	return []composer.ComposableResource{
-		argocdGroup,
-		argocdAppRegRole,
-		argocdSsoRoleAssignment,
-		vaultGroup,
-		vaultAppRegRole,
-		vaultSsoRoleAssignment,
-	}, nil
+	return composers, nil
 }
 
 // RunFunction is the entry point for the composition function.

@@ -28,23 +28,47 @@ spec:
               may reject unrecognized values.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
-          argocdApp:
-            description: ArgoCDApp holds the ArgoCD App Registration and Enterprise
-              Application IDs.
-            properties:
-              appRegObjectID:
-                description: AppRegObjectID is the object ID of the ArgoCD App Registration.
-                minLength: 1
-                type: string
-              enterpriseAppObjectID:
-                description: EnterpriseAppObjectID is the object ID of the ArgoCD
-                  Enterprise Application.
-                minLength: 1
-                type: string
-            required:
-            - appRegObjectID
-            - enterpriseAppObjectID
-            type: object
+          apps:
+            description: |-
+              Apps lists the applications the tenant gets single sign-on to. A Group,
+              an AppRole and a RoleAssignment are created for each one.
+            items:
+              description: AppConfig identifies one application in Entra ID.
+              properties:
+                appRegObjectID:
+                  description: AppRegObjectID is the object ID of the application's
+                    App Registration.
+                  minLength: 1
+                  type: string
+                displayName:
+                  description: |-
+                    DisplayName is the application's name in group names, role descriptions and
+                    condition types, such as ArgoCD.
+                  pattern: ^[A-Za-z][A-Za-z0-9]*$
+                  type: string
+                enterpriseAppObjectID:
+                  description: EnterpriseAppObjectID is the object ID of the application's
+                    Enterprise Application.
+                  minLength: 1
+                  type: string
+                name:
+                  description: Name is a short identifier used in resource names,
+                    such as argocd.
+                  maxLength: 20
+                  minLength: 1
+                  pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+                  type: string
+              required:
+              - appRegObjectID
+              - displayName
+              - enterpriseAppObjectID
+              - name
+              type: object
+            minItems: 1
+            type: array
+            x-kubernetes-list-map-keys:
+            - name
+            x-kubernetes-list-type: map
           kind:
             description: |-
               Kind is a string value representing the REST resource this object represents.
@@ -71,27 +95,9 @@ spec:
             - kind
             - name
             type: object
-          vaultApp:
-            description: VaultApp holds the Vault App Registration and Enterprise
-              Application IDs.
-            properties:
-              appRegObjectID:
-                description: AppRegObjectID is the object ID of the Vault App Registration.
-                minLength: 1
-                type: string
-              enterpriseAppObjectID:
-                description: EnterpriseAppObjectID is the object ID of the Vault Enterprise
-                  Application.
-                minLength: 1
-                type: string
-            required:
-            - appRegObjectID
-            - enterpriseAppObjectID
-            type: object
         required:
-        - argocdApp
+        - apps
         - providerConfigRef
-        - vaultApp
         type: object
     served: true
     storage: true
