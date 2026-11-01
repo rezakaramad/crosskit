@@ -29,8 +29,8 @@ Tag the module path and push.
 
 ```sh
 git tag modules/composer/v0.1.0
-git tag types/xtenantentra/v0.1.0
-git push origin modules/composer/v0.1.0 types/xtenantentra/v0.1.0
+git tag types/xtenantsso/v0.1.0
+git push origin modules/composer/v0.1.0 types/xtenantsso/v0.1.0
 ```
 
 > Never move a tag after it has been pushed — the proxy caches it. Cut a new patch version instead.
@@ -43,14 +43,14 @@ Tag the function path and push. CI (`publish-functions.yml`) fires automatically
 2. Builds a Crossplane `.xpkg` package embedding that image → `ghcr.io/<owner>/function-<name>:<version>`
 
 ```sh
-git tag functions/xtenantentra/v0.1.0
-git push origin functions/xtenantentra/v0.1.0
+git tag functions/xtenantsso/v0.1.0
+git push origin functions/xtenantsso/v0.1.0
 ```
 
 Then optionally create a GitHub Release for changelog/notes:
 
 ```sh
-gh release create functions/xtenantentra/v0.1.0 --title "functions/xtenantentra v0.1.0" --notes ""
+gh release create functions/xtenantsso/v0.1.0 --title "functions/xtenantsso v0.1.0" --notes ""
 ```
 
 **Useful commands:**
