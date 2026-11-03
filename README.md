@@ -23,6 +23,26 @@ Each top-level directory has a pretty specific job.
 
 ## Releasing
 
+Before creating a new version tag, fetch the latest tags from the remote:
+
+```sh
+git fetch origin --tags
+```
+
+Check the latest version for each package:
+
+```sh
+# Go modules
+git tag -l 'modules/composer/v*' --sort=-v:refname | head -n 1
+git tag -l 'types/xtenantsso/v*' --sort=-v:refname | head -n 1
+
+# Crossplane functions 
+git tag -l 'functions/xtenantsso/v*' --sort=-v:refname | head -n 1
+```
+
+Create a new tag by incrementing the appropriate semantic version
+(`MAJOR.MINOR.PATCH`).
+
 ### Go modules (`modules/`, `types/`)
 
 Tag the module path and push.
