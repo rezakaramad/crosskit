@@ -121,8 +121,6 @@ github.com/prometheus/procfs v0.19.2 h1:zUMhqEW66Ex7OXIiDkll3tl9a1ZdilUOd/F6ZXw4
 github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05ZpYlu+b4J7mw=
 github.com/rezakaramad/crosskit/modules/generator v0.1.1 h1:2vdx16LFL+Y/7NKvDYSn6QVcF4p7NBdZtva82TQLkXU=
 github.com/rezakaramad/crosskit/modules/generator v0.1.1/go.mod h1:pOQlQod1UWdqt/0q0jv7U6zx5lRvXrFWSMuOFb7y9Wc=
-github.com/rezakaramad/crosskit/types/xtenantargo v0.2.0 h1:4a2Vs6XdFf11VNPRiPM7y13GrkXxBI2RY6fPQ4IFgHE=
-github.com/rezakaramad/crosskit/types/xtenantargo v0.2.0/go.mod h1:VHtg7tpBVAmoHPTjaIsMmZmbYOAhloqy9mbUNZMGHnU=
 github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0 h1:UoXaWutJ4q+CaSAXnvJZd5y5vmSd3/GQnmG+TssvEP0=
 github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0/go.mod h1:Q9VyjXHHHUnZ1+Gau628q2mnBvGu8sxM18PVg5wW3Ec=
 github.com/rezakaramad/crosskit/types/xwebapp v0.1.0 h1:nwT+fITe/4xNy4VqBQxaU3dXCWyJQgWMzvZtLtY3ZQY=

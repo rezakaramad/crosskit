@@ -6,7 +6,7 @@ Ref: https://buf.build/crossplane/crossplane/docs/main:apiextensions.fn.proto.v1
 
 | proto field | type | what it is | where in your code |
 |---|---|---|---|
-| `meta` (1) | `RequestMeta` | Request metadata: `tag` (dedup id) + `capabilities` (what this Crossplane version supports) | [fn.go](xtenantargo/fn.go#L62) `req.GetMeta().GetTag()` |
+| `meta` (1) | `RequestMeta` | Request metadata: `tag` (dedup id) + `capabilities` (what this Crossplane version supports) | [fn.go](xtenantsso/fn.go#L78) `req.GetMeta().GetTag()` |
 | `observed` (2) | `State` | Actual current state of the XR + composed resources, as of pipeline start | via `request.GetObservedComposedResources(req)` and `request.GetObservedCompositeResource(req)` |
 | `desired` (3) | `State` | Desired state **accumulated so far** by earlier functions in the pipeline (partial object) | via `request.GetDesiredComposedResources(req)` and `request.GetDesiredCompositeResource(req)` |
 | `input` (4) | `Struct` (JSON) | The `input:` block from your Composition pipeline step | via `request.GetInput(req, input)` into your `inputv1beta1.Input` |
@@ -116,8 +116,8 @@ For a single-function pipeline you could start from an empty map and it'd work i
 
 | proto field | type | what it is | where in your code |
 |---|---|---|---|
-| `meta` (1) | `ResponseMeta` | `tag` (must match request) + `ttl` (when Crossplane calls again) | set by `response.To(req, response.DefaultTTL)` at [fn.go](xtenantargo/fn.go#L64) |
-| `desired` (2) | `State` | The desired state you want — **partial**; anything you omit that was previously desired gets deleted | set by `response.SetDesiredComposedResources(rsp, desired)` at [fn.go](xtenantargo/fn.go#L145) |
+| `meta` (1) | `ResponseMeta` | `tag` (must match request) + `ttl` (when Crossplane calls again) | set by `response.To(req, response.DefaultTTL)` at [fn.go](xtenantsso/fn.go#L81) |
+| `desired` (2) | `State` | The desired state you want — **partial**; anything you omit that was previously desired gets deleted | set by `response.SetDesiredComposedResources(rsp, desired)` at [fn.go](xtenantsso/fn.go#L178) |
 | `results` (3) | `repeated Result` | Observability events (Fatal / Warning / Normal) | `response.Fatal(rsp, ...)` calls produce these |
 | `context` (4) | `Struct` | Context handed to the next function | not used |
 | `requirements` (5) | `Requirements` | Ask Crossplane to fetch extra `resources` / `schemas` for the next reconcile | not used |

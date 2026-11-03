@@ -207,7 +207,7 @@ The key thing to understand is that a composition function is **not** a run-once
 ### 1. Packaging
 
 The function is compiled into a single binary and shipped as a container image. In this repo the
-[Dockerfile](xtenantargo/Dockerfile) builds the binary and sets it as the entry point:
+[Dockerfile](xtenantsso/Dockerfile) builds the binary and sets it as the entry point:
 
 ```dockerfile
 FROM gcr.io/distroless/static-debian12:nonroot AS image
@@ -256,7 +256,7 @@ calls `(*CLI).Run()`, which calls `function.Serve(...)` to start the gRPC server
 
 Once the server is up, Crossplane calls the running function process over gRPC (with mTLS) **every time it reconciles** a composite resource that references this function.
 
-Each call is a `RunFunctionRequest` in and a `RunFunctionResponse` out; handled by the `RunFunction` method in [fn.go](xtenantargo/fn.go):
+Each call is a `RunFunctionRequest` in and a `RunFunctionResponse` out; handled by the `RunFunction` method in [fn.go](xtenantsso/fn.go):
 
 ```go
 func (f *Function) RunFunction(

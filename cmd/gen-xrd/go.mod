@@ -4,7 +4,6 @@ go 1.26.4
 
 require (
 	github.com/rezakaramad/crosskit/modules/generator v0.1.1
-	github.com/rezakaramad/crosskit/types/xtenantargo v0.2.0
 	github.com/rezakaramad/crosskit/types/xtenantentra v0.1.0
 	github.com/rezakaramad/crosskit/types/xwebapp v0.1.0
 )

@@ -17,7 +17,7 @@ If you just read [CLI.md](CLI.md), that explained how the program *starts* (pars
 > **What is a "handler"?** A handler is just the piece of *your* code; a function or an object with
 > a method, that the framework calls to process one incoming request. It takes the request as input
 > and produces a response. You write the handler; the framework decides *when* to call it (e.g. once per
-> request). In this repo, [the `Function` type](xtenantargo/fn.go#L25) has a `RunFunction` method that handles incoming requests.
+> request). In this repo, [the `Function` type](xtenantsso/fn.go#L27) has a `RunFunction` method that handles incoming requests.
 
 ### The core idea: you don't call your handler; the framework does
 
@@ -344,15 +344,15 @@ The function lives in one Go package (`package main`) split across two files:
 
 | File | Role |
 | --- | --- |
-| [main.go](xtenantargo/main.go) | **Setup.** Parse config, build the handler object, start the server. |
-| [fn.go](xtenantargo/fn.go) | **The handler.** Defines the `Function` type and its `RunFunction` method. |
+| [main.go](xtenantsso/main.go) | **Setup.** Parse config, build the handler object, start the server. |
+| [fn.go](xtenantsso/fn.go) | **The handler.** Defines the `Function` type and its `RunFunction` method. |
 
 Because both files are `package main` in the same directory, they compile together as **one
 program**; `main.go` can reference `Function` from `fn.go` with no import.
 
 ### Step 1 — Register (the single line that links the two files)
 
-In [main.go](xtenantargo/main.go), inside `Run()`:
+In [main.go](xtenantsso/main.go), inside `Run()`:
 
 ```go
 return function.Serve(&Function{log: log},   // <-- the handoff
@@ -382,7 +382,7 @@ This one expression is the *entire* connection between `main.go` and `fn.go`. `m
 
 ### The handler that gets called: `RunFunction`
 
-In [fn.go](xtenantargo/fn.go):
+In [fn.go](xtenantsso/fn.go):
 
 ```go
 // Function is the gRPC server object Crossplane calls.
@@ -444,7 +444,7 @@ sequenceDiagram
 Starting a server means: **register** a handler object (tell the framework what to call),
 **open a socket** (listen on a port so others can reach you), and **block** (loop forever handling
 requests). You never call your handler yourself; the framework does, once per incoming request. In
-this repo, [main.go](xtenantargo/main.go) registers the `Function` from [fn.go](xtenantargo/fn.go)
+this repo, [main.go](xtenantsso/main.go) registers the `Function` from [fn.go](xtenantsso/fn.go)
 via `function.Serve`, listens on `:9443`, and blocks; then the gRPC runtime calls `RunFunction`
 every time Crossplane reconciles a composite resource. The link between the two files is the single
 expression `&Function{log: log}`; everything else is the framework doing the calling for you.
